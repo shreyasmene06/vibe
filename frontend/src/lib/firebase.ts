@@ -1,13 +1,14 @@
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
 import { getAnalytics } from "firebase/analytics";
-import { getAuth, 
-  GoogleAuthProvider, 
-  signInWithPopup, 
-  signInWithEmailAndPassword, 
-  signOut, 
-  createUserWithEmailAndPassword, 
-  updateProfile, 
+import { getAuth,
+  GoogleAuthProvider,
+  connectAuthEmulator,
+  signInWithPopup,
+  signInWithEmailAndPassword,
+  signOut,
+  createUserWithEmailAndPassword,
+  updateProfile,
   sendPasswordResetEmail as firebaseSendPasswordResetEmail,
   confirmPasswordReset,
   verifyPasswordResetCode } from "firebase/auth";
@@ -33,6 +34,16 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
+// [local-dev] Route to the Firebase Auth emulator when explicitly opted in.
+// Set VITE_FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099 in frontend/.env to
+// enable. No-op in prod builds (env var unset).
+if (import.meta.env.VITE_FIREBASE_AUTH_EMULATOR_HOST) {
+  connectAuthEmulator(
+    auth,
+    `http://${import.meta.env.VITE_FIREBASE_AUTH_EMULATOR_HOST}`,
+    { disableWarnings: true },
+  );
+}
 export const provider = new GoogleAuthProvider();
 
 // Firebase authentication functions
