@@ -179,4 +179,13 @@ export const logout = () => {
   useAuthStore.getState().clearUser();
 };
 
-export const analytics = getAnalytics(app);
+// [local-dev] When the auth emulator is enabled, the Firebase project is
+// fake (e.g. demo-test) and getAnalytics() tries to register an Installation
+// against the real Google endpoint → 400 INVALID_ARGUMENT. Skip analytics
+// entirely in that case. In prod builds this stays disabled until
+// VITE_ENABLE_ANALYTICS is explicitly set to true.
+export const analytics =
+  !import.meta.env.VITE_FIREBASE_AUTH_EMULATOR_HOST &&
+  import.meta.env.VITE_ENABLE_ANALYTICS === 'true'
+    ? getAnalytics(app)
+    : null;
