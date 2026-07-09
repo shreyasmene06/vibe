@@ -108,6 +108,10 @@ export function PeerReviewSubmissionForm({
   const submitHook = useSubmitPeerReview();
   const submissionQuery = useMySubmission(assessment?._id || assessment?.assessmentId);
   const existing = submissionQuery.data;
+  // Local flag — flips true on the first submit click. Combined with
+  // the read-only "if (existing) return" branch, this prevents the
+  // user from spam-clicking Submit before the refetch lands.
+  const [hasSubmitted, setHasSubmitted] = useState(false);
   // refetch on mount so an already-submitted student sees the "submitted" view
   // immediately after a page reload (rather than the empty form).
   useEffect(() => { submissionQuery.refetch(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -201,11 +205,13 @@ export function PeerReviewSubmissionForm({
 
   const navigate = useNavigate();
 
-  // When a submission already exists, render the read-only "Submitted"
-  // view with a next-step CTA. Avoids the form being re-submittable
-  // and surfaces the reviewer-queue pointer.
-  if (existing) {
-    const submittedAt = existing.submittedAt ? new Date(existing.submittedAt) : null;
+  // When a submission already exists OR the student has clicked Submit
+  // at least once in this session, render the read-only "Submitted"
+  // view with a next-step CTA. The local hasSubmitted flag closes
+  // the race window between the POST and the refetch so spam-clicks
+  // don't re-trigger the submit handler.
+  if (existing || hasSubmitted) {
+    const submittedAt = existing?.submittedAt ? new Date(existing.submittedAt) : null;
     return (
       <div className="space-y-6 p-4 max-w-3xl mx-auto">
         <Card>
