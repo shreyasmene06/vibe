@@ -1080,7 +1080,13 @@ function TeacherCourseContent() {
 
   // Add Item (handles all item types including video, quiz, article, and project)
   const handleAddItem = (moduleId: string, sectionId: string, type: string, videoData?: any) => {
-    if (!versionId) return;
+    // TEMP DIAGNOSTIC — remove after confirming click-to-modal flow works
+    console.log('[peer-review-dbg] handleAddItem called', { moduleId, sectionId, type, versionId, currentCourse });
+
+    if (!versionId) {
+      console.warn('[peer-review-dbg] handleAddItem aborted: versionId is falsy. currentCourse =', currentCourse);
+      return;
+    }
 
     type ItemType = "VIDEO" | "QUIZ" | "BLOG" | "PROJECT" | "FEEDBACK" | "PEER_REVIEW_ASSESSMENT";
     const typeMap: Record<string, ItemType> = {

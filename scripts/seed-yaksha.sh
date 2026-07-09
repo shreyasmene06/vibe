@@ -191,10 +191,22 @@ seed_demo_course() {
     const studentId = ObjectId('${student_id}');
     const now = new Date();
 
-    // 1. Demo course (idempotent on name == 'Demo Course')
-    let course = db.courses.findOne({name: 'Demo Course'});
+    // Cleanup legacy collection names from earlier local-dev seed attempts.
+    // Backend reads from newCourse/newCourseVersion/enrollment (singular).
+    // If a previous seed run wrote to courses/courseversions/enrollments,
+    // delete those orphan docs so they don't surface later via ad-hoc
+    // mongo queries.
+    db.courses.deleteMany({name: 'Demo Course'});
+    db.courseversions.deleteMany({});
+    db.enrollments.deleteMany({});
+
+    // 1. Demo course (idempotent on name == 'Demo Course').
+    //    Note: backend reads from `newCourse`/`newCourseVersion` (not the
+    //    legacy `courses`/`courseversions` names). Writing to the wrong
+    //    collection makes the course invisible to every backend endpoint.
+    let course = db.newCourse.findOne({name: 'Demo Course'});
     if (!course) {
-      const cr = db.courses.insertOne({
+      const cr = db.newCourse.insertOne({
         name: 'Demo Course',
         description: 'Auto-seeded demo course for local peer-review development.',
         versions: [],
@@ -203,7 +215,7 @@ seed_demo_course() {
         updatedAt: now,
         isDeleted: false,
       });
-      course = db.courses.findOne({_id: cr.insertedId});
+      course = db.newCourse.findOne({_id: cr.insertedId});
       print('  + course: Demo Course');
     } else {
       print('  ✓ course: Demo Course (already exists)');
@@ -211,10 +223,11 @@ seed_demo_course() {
     const courseId = course._id;
 
     // 2. Demo course version 'v1' (idempotent on (courseId, version))
-    let version = db.courseversions.findOne({courseId: courseId, version: 'v1'});
+    let version = db.newCourseVersion.findOne({courseId: courseId, version: 'v1'});
     if (!version) {
-      const vr = db.courseversions.insertOne({
+      const vr = db.newCourseVersion.insertOne({
         courseId: courseId,
+        courseVersionId: courseId,
         version: 'v1',
         description: 'Default version for local peer-review development.',
         versionStatus: 'active',
@@ -223,7 +236,7 @@ seed_demo_course() {
         createdAt: now,
         updatedAt: now,
       });
-      version = db.courseversions.findOne({_id: vr.insertedId});
+      version = db.newCourseVersion.findOne({_id: vr.insertedId});
       print('  + version: v1');
     } else {
       print('  ✓ version: v1 (already exists)');
@@ -232,7 +245,7 @@ seed_demo_course() {
 
     // Link version into course.versions[] if missing.
     if (!course.versions || !course.versions.some(v => v.toString() === versionId.toString())) {
-      db.courses.updateOne({_id: courseId}, {\$push: {versions: versionId}});
+      db.newCourse.updateOne({_id: courseId}, {\$push: {versions: versionId}});
     }
 
     // 3. Demo cohort 'Cohort-A' (idempotent on (courseVersionId, name))
@@ -254,15 +267,19 @@ seed_demo_course() {
     }
     const cohortId = cohort._id;
     if (!version.cohorts || !version.cohorts.some(c => c.toString() === cohortId.toString())) {
-      db.courseversions.updateOne({_id: versionId}, {\$push: {cohorts: cohortId}});
+      db.newCourseVersion.updateOne({_id: versionId}, {\$push: {cohorts: cohortId}});
     }
 
     // 4. Enrollments. Upsert keyed on (userId, courseId, courseVersionId).
     //    Re-runs converge: existing enrollment's role/status are kept
     //    unless this script is the one writing them (in which case it
     //    overwrites with the canonical local-dev defaults).
+    //
+    //    NOTE: backend reads enrollments from the singular `enrollment`
+    //    collection, not `enrollments`. Writing to the wrong collection
+    //    makes the enrollments invisible to every enrollment query.
     function upsertEnrollment(userId, role) {
-      db.enrollments.updateOne(
+      db.enrollment.updateOne(
         {userId: userId, courseId: courseId, courseVersionId: versionId},
         {\$set: {
           userId: userId,
