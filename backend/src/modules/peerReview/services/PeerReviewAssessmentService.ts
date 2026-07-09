@@ -1,5 +1,6 @@
 import { injectable, inject } from 'inversify';
 import { ClientSession, ObjectId } from 'mongodb';
+import { LexoRank } from 'lexorank';
 import {
   BadRequestError,
   ForbiddenError,
@@ -187,10 +188,22 @@ export class PeerReviewAssessmentService extends BaseService {
         session,
       );
       if (itemsGroup) {
+        // Compute a valid LexoRank order for the new item. If the group is
+        // empty, start at the middle; otherwise append after the last item.
+        // IMPORTANT: must use LexoRank, not a hand-built string — lexorank's
+        // parser validates bucket names and throws 'Unknown bucket' if
+        // they aren't on the lexorank alphabet.
+        let order: string;
+        if (!itemsGroup.items || itemsGroup.items.length === 0) {
+          order = LexoRank.middle().toString();
+        } else {
+          const last = itemsGroup.items[itemsGroup.items.length - 1];
+          order = LexoRank.parse(last.order).genNext().toString();
+        }
         const newItemRef = {
           _id: itemObjectId,
           type: ItemType.PEER_REVIEW_ASSESSMENT,
-          order: `${Date.now().toString(36)}|hzzzzz:`,
+          order,
           isHidden: false,
           name: body.itemName,
         };

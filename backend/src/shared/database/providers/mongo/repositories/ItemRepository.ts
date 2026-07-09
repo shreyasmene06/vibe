@@ -450,6 +450,11 @@ export class ItemRepository implements IItemRepository {
                 _id: new ObjectId(found._id),
               })) as FeedBackFormItem;
               break;
+            case ItemType.PEER_REVIEW_ASSESSMENT:
+              item = (await this.peerReviewAssessmentCollection.findOne({
+                _id: new ObjectId(found._id),
+              })) as any;
+              break;
             default:
               throw new InternalServerError(`Unknown item type: ${found.type}`);
           }
