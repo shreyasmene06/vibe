@@ -131,6 +131,162 @@ sys.exit(1)
 ' "$email" 2>/dev/null
 }
 
+# ----------------------------------------------------------------------------
+# Local-dev bootstrap: enroll teacher@yaksha.com as INSTRUCTOR and
+# user@yaksha.com as STUDENT on a demo course so the seeded stack is
+# immediately usable for peer-review demos.
+#
+# Why a script and not "use the UI":
+#   `Create Course` is admin-only in the upstream model (courseAbilities.ts).
+#   A fresh `./run.sh` has zero courses, zero cohorts, zero enrollments, so
+#   teacher@yaksha.com is dead-in-the-water until an admin creates a course
+#   AND manually enrolls teacher. This is a bootstrap deadlock for local
+#   dev. We resolve it by writing the same Mongo docs the backend service
+#   would write, but without going through the HTTP layer (which would
+#   require minting an admin token and round-tripping through the
+#   transaction-wrapped service).
+#
+# Why this is local-dev only:
+#   The fields we set match CourseService.createCourse() output. Upstream
+#   may add server-side invariants we don't replicate here. If a real
+#   schema migrates past us, this step becomes a no-op (the upsert finds
+#   an existing demo course and skips). It runs ONLY on local-dev and is
+#   tagged `[local-dev]` in its commit. NEVER push this to main.
+#
+# Idempotency:
+#   - Course is keyed by name + version. If a demo course with version
+#     "v1" already exists for this DB, we look it up instead of creating.
+#   - Enrollments use a partial-unique index on (userId, courseId,
+#     courseVersionId); we upsert so reruns converge.
+#   - Cohort document is idempotent via $setOnInsert on (courseVersionId, name).
+# ----------------------------------------------------------------------------
+seed_demo_course() {
+  echo "🌱 [local-dev] Bootstrapping demo course + teacher enrollment..."
+
+  # Resolve the three account _ids (Mongo user docs, not firebaseUIDs —
+  # the enrollment collection indexes on the Mongo _id, not the auth UID).
+  local admin_id teacher_id student_id
+  admin_id=$(mongosh --quiet "$DB_URL" --eval "
+    db = db.getSiblingDB('${DB_NAME}');
+    print(db.users.findOne({email:'admin@yaksha.com'})._id.toString());
+  " | tail -n1)
+  teacher_id=$(mongosh --quiet "$DB_URL" --eval "
+    db = db.getSiblingDB('${DB_NAME}');
+    print(db.users.findOne({email:'teacher@yaksha.com'})._id.toString());
+  " | tail -n1)
+  student_id=$(mongosh --quiet "$DB_URL" --eval "
+    db = db.getSiblingDB('${DB_NAME}');
+    print(db.users.findOne({email:'user@yaksha.com'})._id.toString());
+  " | tail -n1)
+
+  if [ -z "$admin_id" ] || [ -z "$teacher_id" ] || [ -z "$student_id" ]; then
+    echo "  ⚠️  [local-dev] Could not resolve seed user IDs (admin=${admin_id:-?} teacher=${teacher_id:-?} student=${student_id:-?}) — skipping demo course bootstrap." >&2
+    return 0
+  fi
+
+  mongosh --quiet "$DB_URL" --eval "
+    db = db.getSiblingDB('${DB_NAME}');
+    const adminId   = ObjectId('${admin_id}');
+    const teacherId = ObjectId('${teacher_id}');
+    const studentId = ObjectId('${student_id}');
+    const now = new Date();
+
+    // 1. Demo course (idempotent on name == 'Demo Course')
+    let course = db.courses.findOne({name: 'Demo Course'});
+    if (!course) {
+      const cr = db.courses.insertOne({
+        name: 'Demo Course',
+        description: 'Auto-seeded demo course for local peer-review development.',
+        versions: [],
+        instructors: [adminId, teacherId],
+        createdAt: now,
+        updatedAt: now,
+        isDeleted: false,
+      });
+      course = db.courses.findOne({_id: cr.insertedId});
+      print('  + course: Demo Course');
+    } else {
+      print('  ✓ course: Demo Course (already exists)');
+    }
+    const courseId = course._id;
+
+    // 2. Demo course version 'v1' (idempotent on (courseId, version))
+    let version = db.courseversions.findOne({courseId: courseId, version: 'v1'});
+    if (!version) {
+      const vr = db.courseversions.insertOne({
+        courseId: courseId,
+        version: 'v1',
+        description: 'Default version for local peer-review development.',
+        versionStatus: 'active',
+        modules: [],
+        cohorts: [],
+        createdAt: now,
+        updatedAt: now,
+      });
+      version = db.courseversions.findOne({_id: vr.insertedId});
+      print('  + version: v1');
+    } else {
+      print('  ✓ version: v1 (already exists)');
+    }
+    const versionId = version._id;
+
+    // Link version into course.versions[] if missing.
+    if (!course.versions || !course.versions.some(v => v.toString() === versionId.toString())) {
+      db.courses.updateOne({_id: courseId}, {\$push: {versions: versionId}});
+    }
+
+    // 3. Demo cohort 'Cohort-A' (idempotent on (courseVersionId, name))
+    let cohort = db.cohorts.findOne({courseVersionId: versionId, name: 'Cohort-A'});
+    if (!cohort) {
+      const cor = db.cohorts.insertOne({
+        courseId: courseId,
+        courseVersionId: versionId,
+        name: 'Cohort-A',
+        description: 'Auto-seeded demo cohort.',
+        createdAt: now,
+        updatedAt: now,
+        isPublic: false,
+      });
+      cohort = db.cohorts.findOne({_id: cor.insertedId});
+      print('  + cohort: Cohort-A');
+    } else {
+      print('  ✓ cohort: Cohort-A (already exists)');
+    }
+    const cohortId = cohort._id;
+    if (!version.cohorts || !version.cohorts.some(c => c.toString() === cohortId.toString())) {
+      db.courseversions.updateOne({_id: versionId}, {\$push: {cohorts: cohortId}});
+    }
+
+    // 4. Enrollments. Upsert keyed on (userId, courseId, courseVersionId).
+    //    Re-runs converge: existing enrollment's role/status are kept
+    //    unless this script is the one writing them (in which case it
+    //    overwrites with the canonical local-dev defaults).
+    function upsertEnrollment(userId, role) {
+      db.enrollments.updateOne(
+        {userId: userId, courseId: courseId, courseVersionId: versionId},
+        {\$set: {
+          userId: userId,
+          courseId: courseId,
+          courseVersionId: versionId,
+          role: role,
+          status: 'ACTIVE',
+          cohortId: cohortId,
+          enrollmentDate: now,
+          percentCompleted: 0,
+          completedItemsCount: 0,
+          isDeleted: false,
+        }},
+        {upsert: true}
+      );
+    }
+
+    const t1 = upsertEnrollment(teacherId, 'INSTRUCTOR');
+    const s1 = upsertEnrollment(studentId, 'STUDENT');
+    print('  + enrollment: teacher@yaksha.com -> INSTRUCTOR');
+    print('  + enrollment: user@yaksha.com    -> STUDENT');
+  "
+}
+
 # Upsert one users document. Arguments: email, roles, firstName, lastName,
 # firebaseUID. We preserve any existing fields not in our list (e.g. profileImage,
 # faceEmbedding) by only setting the ones we know about with $setOnInsert, then
@@ -206,6 +362,15 @@ done
 echo
 echo "✅ Seed complete. ${inserted} new, ${skipped} pre-existing."
 echo
+
+# ----------------------------------------------------------------------------
+# [local-dev] Bootstrap demo course + enrollments so the seeded stack is
+# usable for peer-review demos without any manual UI work.
+# Tag: [local-dev] — never push this branch to main.
+# ----------------------------------------------------------------------------
+seed_demo_course
+
+echo
 echo "Default credentials (also baked into this script — see scripts/seed-yaksha.sh):"
 printf "   %-22s  %-13s  %s\n" "email" "password" "global role"
 printf "   %-22s  %-13s  %s\n" "----------------------" "-------------" "------------"
@@ -214,6 +379,6 @@ for seed in "${SEEDS[@]}"; do
   printf "   %-22s  %-13s  %s\n" "$email" "$password" "$role"
 done
 echo
-echo "ℹ️  teacher@yaksha.com is a global 'user'. To act as a teacher it needs to be"
-echo "   enrolled in a course version with role=INSTRUCTOR (do that via the UI once"
-echo "   you've created at least one course)."
+echo "ℹ️  [local-dev] A 'Demo Course' (v1, Cohort-A) is auto-created on first run."
+echo "   teacher@yaksha.com is enrolled as INSTRUCTOR; user@yaksha.com as STUDENT."
+echo "   Both can immediately act on the demo course from the dashboard."
