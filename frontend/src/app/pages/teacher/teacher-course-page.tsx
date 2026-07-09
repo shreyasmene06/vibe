@@ -1249,6 +1249,8 @@ function TeacherCourseContent() {
         const payload = {
           title,
           description,
+          itemName: title,
+          itemDescription: description,
           cohortId,
           submissionDeadline: isoSubmissionDeadline,
           reviewDeadline,
@@ -1269,7 +1271,7 @@ function TeacherCourseContent() {
           moduleId,
           sectionId,
           courseId,
-          versionId,
+          courseVersionId: versionId,
         };
         const res = await fetch(`${BACKEND_BASE}/peer-review-assessments`, {
           method: 'POST',
