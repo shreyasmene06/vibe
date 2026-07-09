@@ -58,6 +58,7 @@ import Loader from "@/components/Loader";
 import { Label } from "@/components/ui/label";
 import ProjectItem from "./components/ProjectItem";
 import { PeerReviewAssessmentForm } from "./components/PeerReviewAssessmentForm";
+import { PeerReviewCohortPicker } from "./components/PeerReviewCohortPicker";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup, SidebarResizablePanel } from "@/components/ui/resizable";
 import FeedbackFormEditor from "./FeedbackFormEditor";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -148,13 +149,15 @@ function TeacherCourseContent() {
 
   // Phase 2.2.4: peer-review assessment form modal context. When non-null,
   // a modal with PeerReviewAssessmentForm is rendered; on save, the modal
-  // closes and the item list is refetched.
+  // closes and the item list is refetched. `cohortId` is optional: if
+  // missing, the modal first renders PeerReviewCohortPicker to let the
+  // teacher choose from the actual cohort list.
   const [peerReviewFormContext, setPeerReviewFormContext] = useState<
     | null
     | {
         moduleId: string;
         sectionId: string;
-        cohortId: string;
+        cohortId?: string;
       }
   >(null);
 
@@ -1093,16 +1096,11 @@ function TeacherCourseContent() {
     // because they need their own endpoints, audit logging, and the full
     // assessment config (rubric, deadlines, cohort). The simple item-record
     // POST is insufficient. We open the PeerReviewAssessmentForm modal here.
+    // Cohort is selected inside the modal from the actual cohort list — the
+    // form is gated on a chosen cohortId so we don't need to ask the teacher
+    // for a raw ObjectId here.
     if (type === 'peer-review') {
-      const cohortId = (window.prompt(
-        'Cohort ID for this assessment:',
-        ''
-      ) ?? '').trim();
-      if (!cohortId) {
-        toast.error('Cohort ID is required to create a peer-review assessment.');
-        return;
-      }
-      setPeerReviewFormContext({ moduleId, sectionId, cohortId });
+      setPeerReviewFormContext({ moduleId, sectionId });
       return;
     }
 
@@ -2329,6 +2327,7 @@ function TeacherCourseContent() {
                                                 >
                                                   {hasExistingProject ? 'Project (Limit 1 per course)' : 'Project'}
                                                 </option>
+                                                <option value="peer-review">Peer Review Assessment</option>
                                                 <option value="csv_upload">Upload CSV</option>
 
                                               </select>
@@ -4057,7 +4056,16 @@ export function UserAnalytics({
             <DialogHeader>
               <DialogTitle>Peer-Review Assessment</DialogTitle>
             </DialogHeader>
-            {peerReviewFormContext && (
+            {peerReviewFormContext && !peerReviewFormContext.cohortId && (
+              <PeerReviewCohortPicker
+                courseVersionId={versionId!}
+                onPicked={(cohortId) =>
+                  setPeerReviewFormContext({ ...peerReviewFormContext, cohortId })
+                }
+                onCancel={() => setPeerReviewFormContext(null)}
+              />
+            )}
+            {peerReviewFormContext && peerReviewFormContext.cohortId && (
               <PeerReviewAssessmentForm
                 courseId={courseId}
                 courseVersionId={versionId!}
