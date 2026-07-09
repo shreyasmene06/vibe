@@ -176,6 +176,7 @@ export function PeerReviewSubmissionForm({
       // page shows the read-only "Submitted" view. Without this, the
       // form stays editable for as long as the refetch is in flight,
       // and the user can click Submit again.
+      console.log('[peer-review] setting hasSubmitted=true BEFORE POST');
       setHasSubmitted(true);
       await submitHook.mutateAsync({
         params: { path: { courseId: courseId as any, versionId: versionId as any, itemId: itemId as any } },
@@ -188,13 +189,16 @@ export function PeerReviewSubmissionForm({
           })),
         },
       });
+      console.log('[peer-review] POST returned 2xx');
       // Re-fetch so `existing` becomes the new submission — the form
       // stays in the "Submitted" state via hasSubmitted even if the
       // refetch fails for any reason.
       await submissionQuery.refetch();
+      console.log('[peer-review] refetch done, hasSubmitted is still true');
       toast.success("Submission saved. You'll need to review 3 of your peers next.");
     } catch (e: any) {
       // Roll back the local flag so the user can retry on failure.
+      console.log('[peer-review] POST failed, rolling back', e?.message);
       setHasSubmitted(false);
       toast.error(`Save failed: ${e?.message ?? "Unknown error"}`);
     }
@@ -219,6 +223,11 @@ export function PeerReviewSubmissionForm({
   // the race window between the POST and the refetch so spam-clicks
   // don't re-trigger the submit handler.
   if (existing || hasSubmitted) {
+    console.log('[peer-review] rendering submitted view', {
+      hasSubmitted,
+      existingIsLate: existing?.isLate,
+      existingSubmittedAt: existing?.submittedAt,
+    });
     const submittedAt = existing?.submittedAt ? new Date(existing.submittedAt) : null;
     return (
       <div className="space-y-6 p-4 max-w-3xl mx-auto">
