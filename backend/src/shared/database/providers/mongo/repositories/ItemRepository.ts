@@ -185,6 +185,9 @@ export class ItemRepository implements IItemRepository {
         case ItemType.FEEDBACK:
           collection = this.feedbackFormCollection;
           break;
+        case ItemType.PEER_REVIEW_ASSESSMENT:
+          collection = this.peerReviewAssessmentCollection;
+          break;
         default:
           throw new InternalServerError(
             `Unsupported item type: ${(item as any).type}`,
@@ -361,6 +364,9 @@ export class ItemRepository implements IItemRepository {
           break;
         case ItemType.FEEDBACK:
           collection = this.feedbackFormCollection;
+          break;
+        case ItemType.PEER_REVIEW_ASSESSMENT:
+          collection = this.peerReviewAssessmentCollection;
           break;
         default:
           throw new Error(`Unsupported item type: ${item.type}`);
@@ -546,6 +552,9 @@ export class ItemRepository implements IItemRepository {
         break;
       case ItemType.FEEDBACK:
         collection = this.feedbackFormCollection;
+        break;
+      case ItemType.PEER_REVIEW_ASSESSMENT:
+        collection = this.peerReviewAssessmentCollection;
         break;
       default:
         throw new InternalServerError(
@@ -1073,6 +1082,9 @@ export class ItemRepository implements IItemRepository {
         break;
       case ItemType.FEEDBACK:
         collection = this.feedbackFormCollection;
+        break;
+      case ItemType.PEER_REVIEW_ASSESSMENT:
+        collection = this.peerReviewAssessmentCollection;
         break;
       default:
         throw new InternalServerError(
