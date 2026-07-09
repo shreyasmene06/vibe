@@ -74,23 +74,14 @@ export const peerReviewContainerModule = new ContainerModule(options => {
     .to(PeerReviewNotificationService)
     .inSingletonScope();
 
-  // Controllers
-  options
-    .bind(PEERREVIEW_TYPES.PeerReviewAssessmentController)
-    .to(PeerReviewAssessmentController)
-    .inSingletonScope();
-  options
-    .bind(PEERREVIEW_TYPES.PeerReviewSubmissionController)
-    .to(PeerReviewSubmissionController)
-    .inSingletonScope();
-  options
-    .bind(PEERREVIEW_TYPES.PeerReviewAssignmentController)
-    .to(PeerReviewAssignmentController)
-    .inSingletonScope();
-  options
-    .bind(PEERREVIEW_TYPES.PeerReviewTeacherController)
-    .to(PeerReviewTeacherController)
-    .inSingletonScope();
+  // Controllers — bind to self() so routing-controllers' class-as-symbol
+  // DI resolution works. Binding to TYPES.* (as the original code did)
+  // makes the framework throw "No bindings found for service: ControllerClass"
+  // on the first request.
+  options.bind(PeerReviewAssessmentController).toSelf().inSingletonScope();
+  options.bind(PeerReviewSubmissionController).toSelf().inSingletonScope();
+  options.bind(PeerReviewAssignmentController).toSelf().inSingletonScope();
+  options.bind(PeerReviewTeacherController).toSelf().inSingletonScope();
 
   // Crons
   options

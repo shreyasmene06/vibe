@@ -31,6 +31,7 @@ export class ItemRepository implements IItemRepository {
   private blogCollection: Collection<BlogItem>;
   private projectCollection: Collection<ProjectItem>;
   private feedbackFormCollection: Collection<FeedBackFormItem>;
+  private peerReviewAssessmentCollection: Collection<any>;
   private questionBankCollection: Collection<QuestionBank>;
   private questionsCollection: Collection<any>;
   private courseVersionCollection: Collection<any>;
@@ -56,6 +57,9 @@ export class ItemRepository implements IItemRepository {
     );
     this.feedbackFormCollection = await this.db.getCollection<FeedBackFormItem>(
       'feedback_forms',
+    );
+    this.peerReviewAssessmentCollection = await this.db.getCollection(
+      'peer_review_assessments',
     );
 
     this.itemsGroupCollection.createIndex({ items: 1 });
@@ -299,6 +303,9 @@ export class ItemRepository implements IItemRepository {
         break;
       case ItemType.FEEDBACK:
         collection = this.feedbackFormCollection;
+        break;
+      case ItemType.PEER_REVIEW_ASSESSMENT:
+        collection = this.peerReviewAssessmentCollection;
         break;
       default:
         throw new Error(`Unsupported item type: ${(item as any).type}`);

@@ -13,6 +13,7 @@ import {
   Min,
   MinLength,
   ValidateNested,
+  ArrayMinSize,
 } from 'class-validator';
 import { JSONSchema } from 'class-validator-jsonschema';
 import {
@@ -104,7 +105,7 @@ export class CreatePeerReviewAssessmentBody {
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => RubricCriterionDto)
-  @MinLength(1)
+  @ArrayMinSize(1)
   rubric!: RubricCriterionDto[];
 
   @Expose()

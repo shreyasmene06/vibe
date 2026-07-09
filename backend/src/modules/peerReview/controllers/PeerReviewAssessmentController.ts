@@ -46,7 +46,7 @@ export class PeerReviewAssessmentController {
 
   @Post('/')
   @HttpCode(201)
-  @Authorized(['INSTRUCTOR', 'MANAGER'])
+  @Authorized()
   async create(
     @Req() req: any,
     @CurrentUser({ required: true }) user: IUser,
