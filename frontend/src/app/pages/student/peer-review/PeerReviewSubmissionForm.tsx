@@ -80,13 +80,13 @@ function LinkAccessibilityBadge({ url }: { url: string }) {
   const reasonText: Record<string, string> = {
     http_401: 'Requires sign-in (401)',
     http_403: 'Forbidden (403)',
-    http_404: 'Not found (404)',
+    http_404: 'File not found (404) — check the link',
     http_5xx: 'Server error (5xx)',
-    auth_required: 'Drive link is private',
+    auth_required: 'Drive/OneDrive link is private',
     timeout: 'Request timed out',
     dns_failure: 'DNS lookup failed',
     connection_refused: 'Connection refused',
-    invalid_url: 'Invalid URL',
+    invalid_url: 'Invalid URL — paste a full https://... link',
   };
   const reason = reasonText[check.data.reason ?? ''] ?? (check.data.reason ?? 'Not accessible');
   return (

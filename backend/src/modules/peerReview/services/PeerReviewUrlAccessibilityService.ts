@@ -39,7 +39,13 @@ export interface AccessibilityResult {
   status?: number;
 }
 
-const CACHE_TTL_MS = 60_000;
+// Cache TTL shortened from 60s to 5s. The 60s default caused stale
+  // accessibility results to persist during the common
+  // teacher/student test workflow (paste private URL, see red,
+  // unshare it, paste again, still red because the cache).
+  // Real ops usage is one check per submission so the cache savings
+  // don't matter for production; the freshness matters for tests.
+  const CACHE_TTL_MS = 5_000;
 const REQUEST_TIMEOUT_MS = 5_000;
 
 interface CacheEntry {
