@@ -4055,6 +4055,24 @@ export function UserAnalytics({
               escapes any sibling subtree that may be causing hydration
               errors (e.g. the SidebarMenuSubItem nested-<li> bug that
               would otherwise tear down the whole React tree). */}
+          {/* TEMP DIAGNOSTIC: a non-portal sibling that shows whenever the
+              state is set, so we can verify the conditional evaluates truthy. */}
+          {peerReviewFormContext !== null && (
+            <div
+              data-peer-review-inline-banner
+              style={{
+                background: 'red',
+                color: 'white',
+                padding: '12px',
+                fontSize: '20px',
+                fontWeight: 'bold',
+                textAlign: 'center',
+                margin: '16px 0',
+              }}
+            >
+              PEER-REVIEW STATE IS SET — context={JSON.stringify(peerReviewFormContext)}
+            </div>
+          )}
           {mounted && peerReviewFormContext !== null && createPortal(
             <div
               data-peer-review-modal
