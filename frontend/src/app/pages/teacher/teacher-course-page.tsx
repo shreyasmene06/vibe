@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, ChangeEvent, use } from "react";
+import { createPortal } from "react-dom";
 import * as Papa from 'papaparse';
 import { useAddQuestionBankToQuiz, useAddQuestionToBank, useCreateQuestion, useCreateQuestionBank, useOverallVideoAnalytics, userParseCSVtoItems, useUpdateItemOptional, useVideoUserAnalytics } from '@/hooks/hooks';
 import { BarChart3, Download, LogOut, Upload, UserRoundCheck, Video, Clock, PlayCircle, Users, Search, LockOpen, Lock } from 'lucide-react';
@@ -138,6 +139,8 @@ type CSVRow = {
 
 function TeacherCourseContent() {
   const [mode, setMode] = useState<Mode>("default");
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
   const matches = useMatches();
   const [breadcrumbs, setBreadcrumbs] = useState<BreadcrumbItem[]>([]);
   const [showInvites, setShowInvites] = useState(false);
@@ -1080,13 +1083,7 @@ function TeacherCourseContent() {
 
   // Add Item (handles all item types including video, quiz, article, and project)
   const handleAddItem = (moduleId: string, sectionId: string, type: string, videoData?: any) => {
-    // TEMP DIAGNOSTIC — remove after confirming click-to-modal flow works
-    console.log('[peer-review-dbg] handleAddItem called', { moduleId, sectionId, type, versionId, currentCourse });
-
-    if (!versionId) {
-      console.warn('[peer-review-dbg] handleAddItem aborted: versionId is falsy. currentCourse =', currentCourse);
-      return;
-    }
+    if (!versionId) return;
 
     type ItemType = "VIDEO" | "QUIZ" | "BLOG" | "PROJECT" | "FEEDBACK" | "PEER_REVIEW_ASSESSMENT";
     const typeMap: Record<string, ItemType> = {
@@ -4040,6 +4037,96 @@ export function UserAnalytics({
 
 
           {/* Pagination (buttons should use bg-primary inside your Pagination component) */}
+          {/* Peer-review assessment creation modal. Triggered from
+              handleAddItem when the teacher picks 'peer-review'. Renders
+              PeerReviewCohortPicker first (until cohortId is chosen), then
+              PeerReviewAssessmentForm. Rendered via createPortal so it
+              escapes any sibling subtree that may be causing hydration
+              errors (e.g. the SidebarMenuSubItem nested-<li> bug that
+              would otherwise tear down the whole React tree). */}
+          {mounted && peerReviewFormContext !== null && createPortal(
+            <div
+              data-peer-review-modal
+              style={{
+                position: 'fixed',
+                inset: 0,
+                background: 'rgba(0,0,0,0.6)',
+                zIndex: 2147483647,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '1rem',
+              }}
+              onClick={(e) => {
+                // Click on the backdrop (outside the inner panel) closes the modal.
+                if (e.target === e.currentTarget) {
+                  setPeerReviewFormContext(null);
+                }
+              }}
+            >
+              <div
+                role="dialog"
+                aria-modal="true"
+                aria-label="Peer-Review Assessment"
+                style={{
+                  background: 'white',
+                  borderRadius: 12,
+                  width: '100%',
+                  maxWidth: 800,
+                  maxHeight: '90vh',
+                  overflowY: 'auto',
+                  padding: 24,
+                  boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
+                }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                  <h2 style={{ fontSize: 20, fontWeight: 600 }}>Peer-Review Assessment</h2>
+                  <button
+                    type="button"
+                    onClick={() => setPeerReviewFormContext(null)}
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      fontSize: 24,
+                      cursor: 'pointer',
+                      lineHeight: 1,
+                      padding: 4,
+                    }}
+                    aria-label="Close"
+                  >×</button>
+                </div>
+                {peerReviewFormContext && !peerReviewFormContext.cohortId && (
+                  <PeerReviewCohortPicker
+                    courseVersionId={versionId!}
+                    onPicked={(cohortId) =>
+                      setPeerReviewFormContext({ ...peerReviewFormContext, cohortId })
+                    }
+                    onCancel={() => setPeerReviewFormContext(null)}
+                  />
+                )}
+                {peerReviewFormContext && peerReviewFormContext.cohortId && (
+                  <PeerReviewAssessmentForm
+                    courseId={courseId}
+                    courseVersionId={versionId!}
+                    moduleId={peerReviewFormContext.moduleId}
+                    sectionId={peerReviewFormContext.sectionId}
+                    cohortId={peerReviewFormContext.cohortId}
+                    onSaved={() => {
+                      setPeerReviewFormContext(null);
+                      refetchVersion();
+                      if (typeof shouldFetchItems !== 'undefined' && shouldFetchItems) {
+                        refetchItems();
+                      }
+                      toast.success('Peer-review assessment created.');
+                    }}
+                    onCancel={() => setPeerReviewFormContext(null)}
+                  />
+                )}
+              </div>
+            </div>,
+            document.body
+          )}
           <Pagination
             currentPage={currentPage}
             totalPages={totalPages}
@@ -4048,49 +4135,6 @@ export function UserAnalytics({
             className="mt-4"
           />
         </CardContent>
-
-        {/* Phase 2.2.4: Peer-review assessment creation modal. Triggered from
-            handleAddItem when the teacher picks 'peer-review'. Renders
-            PeerReviewAssessmentForm and refreshes the item list on save. */}
-        <Dialog
-          open={peerReviewFormContext !== null}
-          onOpenChange={open => {
-            if (!open) setPeerReviewFormContext(null);
-          }}
-        >
-          <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Peer-Review Assessment</DialogTitle>
-            </DialogHeader>
-            {peerReviewFormContext && !peerReviewFormContext.cohortId && (
-              <PeerReviewCohortPicker
-                courseVersionId={versionId!}
-                onPicked={(cohortId) =>
-                  setPeerReviewFormContext({ ...peerReviewFormContext, cohortId })
-                }
-                onCancel={() => setPeerReviewFormContext(null)}
-              />
-            )}
-            {peerReviewFormContext && peerReviewFormContext.cohortId && (
-              <PeerReviewAssessmentForm
-                courseId={courseId}
-                courseVersionId={versionId!}
-                moduleId={peerReviewFormContext.moduleId}
-                sectionId={peerReviewFormContext.sectionId}
-                cohortId={peerReviewFormContext.cohortId}
-                onSaved={() => {
-                  setPeerReviewFormContext(null);
-                  refetchVersion();
-                  if (typeof shouldFetchItems !== 'undefined' && shouldFetchItems) {
-                    refetchItems();
-                  }
-                  toast.success('Peer-review assessment created.');
-                }}
-                onCancel={() => setPeerReviewFormContext(null)}
-              />
-            )}
-          </DialogContent>
-        </Dialog>
       </Card>
     </div>
   );
