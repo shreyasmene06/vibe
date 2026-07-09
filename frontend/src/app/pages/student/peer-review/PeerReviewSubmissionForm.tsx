@@ -162,7 +162,7 @@ export function PeerReviewSubmissionForm({
 
   async function onSave() {
     if (!assessment) return;
-    if (existing) {
+    if (existing || hasSubmitted) {
       toast.error("You've already submitted. To update, refresh the page.");
       return;
     }
@@ -172,6 +172,11 @@ export function PeerReviewSubmissionForm({
     }
     if (submitHook.isPending) return;
     try {
+      // Flip the local flag IMMEDIATELY so the very next render of the
+      // page shows the read-only "Submitted" view. Without this, the
+      // form stays editable for as long as the refetch is in flight,
+      // and the user can click Submit again.
+      setHasSubmitted(true);
       await submitHook.mutateAsync({
         params: { path: { courseId: courseId as any, versionId: versionId as any, itemId: itemId as any } },
         body: {
@@ -184,10 +189,13 @@ export function PeerReviewSubmissionForm({
         },
       });
       // Re-fetch so `existing` becomes the new submission — the form
-      // then re-renders in the "Submitted" state with the next-step CTA.
+      // stays in the "Submitted" state via hasSubmitted even if the
+      // refetch fails for any reason.
       await submissionQuery.refetch();
       toast.success("Submission saved. You'll need to review 3 of your peers next.");
     } catch (e: any) {
+      // Roll back the local flag so the user can retry on failure.
+      setHasSubmitted(false);
       toast.error(`Save failed: ${e?.message ?? "Unknown error"}`);
     }
   }

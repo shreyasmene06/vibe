@@ -2545,9 +2545,12 @@ return false;
                             </p>
                           </div>
                         ) : peerReviewAssessmentHook.data ? (
+                          // courseId/versionId live on the course-store
+                          // (the items themselves don't carry them — items
+                          // live in itemsGroup, scoped to the version).
                           <PeerReviewSubmissionForm
-                            courseId={(currentItem as any)?.courseId}
-                            versionId={(currentItem as any)?.courseVersionId}
+                            courseId={(currentCourse as any)?.courseId}
+                            versionId={(currentCourse as any)?.versionId}
                             itemId={(currentItem as any)?._id}
                             assessment={peerReviewAssessmentHook.data}
                             submissionDeadline={
