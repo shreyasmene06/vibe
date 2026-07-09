@@ -252,25 +252,27 @@ export function PeerReviewSubmissionForm({
         </CardHeader>
         <CardContent className="space-y-3">
           {links.map((l, i) => (
-            <div key={i} className="grid grid-cols-12 gap-2 items-end">
-              <div className="col-span-5">
+            <div key={i} className="grid grid-cols-12 gap-2 items-start">
+              <div className="col-span-3 min-w-0">
                 <Label>Label</Label>
                 <Input
                   value={l.label}
                   onChange={e => setLinkAt(i, { label: e.target.value })}
                   maxLength={200}
                   placeholder="e.g. Project Report v2"
+                  className="w-full"
                 />
               </div>
-              <div className="col-span-6">
+              <div className="col-span-8 min-w-0">
                 <Label>URL</Label>
                 <Input
                   value={l.url}
                   onChange={e => setLinkAt(i, { url: e.target.value })}
                   maxLength={2000}
                   placeholder="https://drive.google.com/file/d/.../view"
+                  className="w-full font-mono text-xs"
                 />
-                <div className="mt-1">
+                <div className="mt-1 truncate">
                   <LinkAccessibilityBadge url={l.url} />
                 </div>
               </div>

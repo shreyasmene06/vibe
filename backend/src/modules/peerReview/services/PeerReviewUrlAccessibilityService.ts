@@ -39,13 +39,12 @@ export interface AccessibilityResult {
   status?: number;
 }
 
-// Cache TTL shortened from 60s to 5s. The 60s default caused stale
-  // accessibility results to persist during the common
-  // teacher/student test workflow (paste private URL, see red,
-  // unshare it, paste again, still red because the cache).
-  // Real ops usage is one check per submission so the cache savings
-  // don't matter for production; the freshness matters for tests.
-  const CACHE_TTL_MS = 5_000;
+// Cache TTL set to 0 (effectively no cache). The 5s/60s settings
+  // caused stale 'private' results during the live-update workflow
+  // where the user changes the link's share settings and expects
+  // the next check to see the new state. Production call rate is
+  // one check per submission, so the cache only hurts UX.
+  const CACHE_TTL_MS = 0;
 const REQUEST_TIMEOUT_MS = 5_000;
 
 interface CacheEntry {

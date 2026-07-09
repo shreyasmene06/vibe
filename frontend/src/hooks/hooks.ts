@@ -1644,10 +1644,10 @@ export function useCheckPeerReviewLink(url: string | undefined): {
       : ({} as any),
     {
       enabled: !!url && url.trim().length > 0,
-      // The backend caches for 60s; we mirror that with a 30s
-      // stale window so rapid re-checks within the cache TTL
-      // are instant.
-      staleTime: 30_000,
+      // staleTime: 0 + no cache. Live updates: every URL change must
+      // re-fetch the result from the backend, no client-side retention.
+      staleTime: 0,
+      gcTime: 0,
       retry: false,
     },
   );
