@@ -217,12 +217,33 @@ export function PeerReviewSubmissionForm({
 
   const navigate = useNavigate();
 
-  // When a submission already exists OR the student has clicked Submit
-  // at least once in this session, render the read-only "Submitted"
-  // view with a next-step CTA. The local hasSubmitted flag closes
-  // the race window between the POST and the refetch so spam-clicks
-  // don't re-trigger the submit handler.
-  if (existing || hasSubmitted) {
+  // Render the read-only "Submitted" view if we have a confirmed
+  // submission (existing) OR the local hasSubmitted flag is set
+  // (the POST is in flight, the refetch hasn't landed). The view
+  // must be safe for both cases — every existing.* access uses
+  // the optional chain so a hasSubmitted-only state doesn't crash.
+  if (hasSubmitted || existing) {
+    // Minimal "submitting" state when hasSubmitted is set but the
+    // server-confirmed refetch hasn't landed yet.
+    if (hasSubmitted && !existing) {
+      return (
+        <div className="space-y-6 p-4 max-w-3xl mx-auto">
+          <Card>
+            <CardHeader>
+              <CardTitle>{assessment?.title ?? "Peer-Review Assessment"}</CardTitle>
+              <p className="text-sm font-medium text-blue-600">
+                Status: Submission in progress… confirm with backend…
+              </p>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">
+                Saving your submission. This typically takes 1–2 seconds.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      );
+    }
     console.log('[peer-review] rendering submitted view', {
       hasSubmitted,
       existingIsLate: existing?.isLate,
@@ -234,8 +255,8 @@ export function PeerReviewSubmissionForm({
         <Card>
           <CardHeader>
             <CardTitle>{assessment?.title ?? "Peer-Review Assessment"}</CardTitle>
-            <p className={`text-sm font-medium ${existing.isLate ? "text-amber-600" : "text-emerald-600"}`}>
-              Status: {existing.isLate ? "Submitted late" : "Submitted on time"}
+            <p className={`text-sm font-medium ${existing?.isLate ? "text-amber-600" : "text-emerald-600"}`}>
+              Status: {existing?.isLate ? "Submitted late" : existing?.submittedAt ? "Submitted on time" : hasSubmitted ? "Submitting..." : "Saved"}
             </p>
           </CardHeader>
           {assessment?.description && (
@@ -280,14 +301,14 @@ export function PeerReviewSubmissionForm({
                 Submitted on {submittedAt.toLocaleString()}
               </p>
             )}
-            {existing.notes && (
+            {existing?.notes && (
               <p className="whitespace-pre-wrap border-l-2 pl-3 italic">
                 {existing.notes}
               </p>
             )}
             <div className="space-y-1">
-              {Array.isArray(existing.links) && existing.links.length > 0 ? (
-                existing.links.map((l: any, i: number) => (
+              {Array.isArray(existing?.links) && (existing?.links ?? []).length > 0 ? (
+                (existing?.links ?? []).map((l: any, i: number) => (
                   <a
                     key={i}
                     href={l.url}
