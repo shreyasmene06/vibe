@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -107,6 +108,9 @@ export function PeerReviewSubmissionForm({
   const submitHook = useSubmitPeerReview();
   const submissionQuery = useMySubmission(assessment?._id || assessment?.assessmentId);
   const existing = submissionQuery.data;
+  // refetch on mount so an already-submitted student sees the "submitted" view
+  // immediately after a page reload (rather than the empty form).
+  useEffect(() => { submissionQuery.refetch(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [notes, setNotes] = useState(existing?.notes ?? "");
   const [links, setLinks] = useState<StudentLink[]>(
@@ -153,13 +157,19 @@ export function PeerReviewSubmissionForm({
     links.every(l => l.url.trim().length > 0 && l.label.trim().length > 0);
 
   async function onSave() {
+    if (!assessment) return;
+    if (existing) {
+      toast.error("You've already submitted. To update, refresh the page.");
+      return;
+    }
     if (!valid) {
       toast.error("Add at least one link (url + label) before submitting.");
       return;
     }
+    if (submitHook.isPending) return;
     try {
       await submitHook.mutateAsync({
-        params: { path: { courseId, versionId, itemId } },
+        params: { path: { courseId: courseId as any, versionId: versionId as any, itemId: itemId as any } },
         body: {
           notes,
           links: links.map(l => ({
@@ -169,8 +179,10 @@ export function PeerReviewSubmissionForm({
           })),
         },
       });
-      toast.success(existing ? "Submission updated." : "Submission saved.");
-      submissionQuery.refetch();
+      // Re-fetch so `existing` becomes the new submission — the form
+      // then re-renders in the "Submitted" state with the next-step CTA.
+      await submissionQuery.refetch();
+      toast.success("Submission saved. You'll need to review 3 of your peers next.");
     } catch (e: any) {
       toast.error(`Save failed: ${e?.message ?? "Unknown error"}`);
     }
@@ -186,6 +198,111 @@ export function PeerReviewSubmissionForm({
     status === "Past deadline" ? "text-red-600" :
     status === "Saving..." ? "text-blue-600" :
     "text-slate-500";
+
+  const navigate = useNavigate();
+
+  // When a submission already exists, render the read-only "Submitted"
+  // view with a next-step CTA. Avoids the form being re-submittable
+  // and surfaces the reviewer-queue pointer.
+  if (existing) {
+    const submittedAt = existing.submittedAt ? new Date(existing.submittedAt) : null;
+    return (
+      <div className="space-y-6 p-4 max-w-3xl mx-auto">
+        <Card>
+          <CardHeader>
+            <CardTitle>{assessment?.title ?? "Peer-Review Assessment"}</CardTitle>
+            <p className={`text-sm font-medium ${existing.isLate ? "text-amber-600" : "text-emerald-600"}`}>
+              Status: {existing.isLate ? "Submitted late" : "Submitted on time"}
+            </p>
+          </CardHeader>
+          {assessment?.description && (
+            <CardContent className="pt-0">
+              <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                {assessment.description}
+              </p>
+            </CardContent>
+          )}
+        </Card>
+
+        {assessment?.rubric && assessment.rubric.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Rubric</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ul className="text-sm space-y-1">
+                {assessment.rubric.map((c: any, i: number) => (
+                  <li key={i} className="flex justify-between border-b pb-1 last:border-0">
+                    <span>
+                      {c.label}
+                      {c.description && (
+                        <span className="text-muted-foreground"> — {c.description}</span>
+                      )}
+                    </span>
+                    <span className="font-mono text-xs">/ {c.maxPoints}</span>
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+        )}
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Your submission</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            {submittedAt && (
+              <p className="text-muted-foreground">
+                Submitted on {submittedAt.toLocaleString()}
+              </p>
+            )}
+            {existing.notes && (
+              <p className="whitespace-pre-wrap border-l-2 pl-3 italic">
+                {existing.notes}
+              </p>
+            )}
+            <div className="space-y-1">
+              {Array.isArray(existing.links) && existing.links.length > 0 ? (
+                existing.links.map((l: any, i: number) => (
+                  <a
+                    key={i}
+                    href={l.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 underline block"
+                  >
+                    {l.label} <span className="text-xs text-muted-foreground">— {l.url}</span>
+                  </a>
+                ))
+              ) : (
+                <p className="text-muted-foreground">No links.</p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>What's next?</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            <p>
+              Your submission is in. Once the submission deadline passes, you'll be
+              assigned <strong>3 peer submissions</strong> to review.
+            </p>
+            <p className="text-muted-foreground">
+              The peer-review round unlocks automatically — until then, you can
+              see your queue on the Peer Reviews page.
+            </p>
+            <Button onClick={() => navigate({ to: "/student/peer-review/reviewer" })}>
+              Go to Peer Reviews
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 p-4 max-w-3xl mx-auto">
