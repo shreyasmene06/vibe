@@ -96,11 +96,22 @@ export class PeerReviewSubmissionRepository {
   ): Promise<string> {
     await this.init();
     const now = new Date();
+    // Strip fields that the upsert already controls: don't let the
+    // patch shadow the filter's compound key, and don't try to mutate
+    // a field that's in $setOnInsert. MongoDB rejects "Updating the
+    // path 'X' would create a conflict at 'X'" on unique-indexed
+    // fields, so studentId/assessmentId/createdAt must stay out of
+    // the $set.
+    const { studentId: _omitStudentId, assessmentId: _omitAssessmentId, createdAt: _omitCreatedAt, ...safePatch } =
+      patch as any;
+    void _omitStudentId;
+    void _omitAssessmentId;
+    void _omitCreatedAt;
     try {
       const result = await this.collection.findOneAndUpdate(
         { assessmentId: assessmentId as any, studentId: studentId as any },
         {
-          $set: { ...patch, updatedAt: now },
+          $set: { ...safePatch, updatedAt: now },
           $setOnInsert: {
             assessmentId,
             studentId,

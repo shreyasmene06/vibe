@@ -129,11 +129,15 @@ export class PeerReviewSubmissionService extends BaseService {
     const isLate = now > assessment.submissionDeadline;
 
     // 7. Idempotent upsert.
+    //    Do NOT include studentId/assessmentId in the patch — those are
+    //    the compound key the upsert is keyed on, and re-setting them
+    //    trips MongoDB's "Updating the path 'X' would create a conflict
+    //    at 'X'" error. The repo's upsertForStudent() also strips them
+    //    defensively.
     const submissionId = await this.submissionRepo.upsertForStudent(
       assessmentId,
       student._id!.toString(),
       {
-        studentId: new ObjectId(student._id!.toString()) as any,
         cohortId: assessment.cohortId,
         courseId: assessment.courseId,
         courseVersionId: assessment.courseVersionId,
