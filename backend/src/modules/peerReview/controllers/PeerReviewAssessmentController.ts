@@ -1,7 +1,7 @@
 import { JsonController, Post, Patch, Get, Param, Body, HttpCode, Authorized, CurrentUser, Req } from 'routing-controllers';
 import { injectable, inject } from 'inversify';
 import { ObjectId } from 'mongodb';
-import { ForbiddenError, InternalServerError } from 'routing-controllers';
+import { ForbiddenError, InternalServerError, NotFoundError } from 'routing-controllers';
 import { PEERREVIEW_TYPES } from '../types.js';
 import { PeerReviewAssessmentService } from '../services/PeerReviewAssessmentService.js';
 import {
@@ -107,6 +107,26 @@ export class PeerReviewAssessmentController {
     // will replace this with a CASL-aware redactor. For now we always
     // return the assessment — students reading this need it for the
     // submission form.
+    return a;
+  }
+
+  /**
+   * Find a peer-review assessment by the underlying course item's id.
+   * Used by the student course page to discover which assessment a
+   * given section item corresponds to (so it can render the submission
+   * form for the right one). Returns 404 if the item is not a
+   * peer-review item.
+   */
+  @Get('/by-item/:itemId')
+  @HttpCode(200)
+  @Authorized()
+  async getByItemId(@Param('itemId') itemId: string): Promise<any> {
+    const a = await this.service.getByItemId(itemId);
+    if (!a) {
+      throw new NotFoundError(
+        `No peer-review assessment for item ${itemId}.`,
+      );
+    }
     return a;
   }
 

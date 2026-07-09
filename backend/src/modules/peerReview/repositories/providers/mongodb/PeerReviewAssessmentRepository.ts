@@ -1,6 +1,6 @@
 import 'reflect-metadata';
 import { injectable, inject } from 'inversify';
-import { ClientSession, Collection } from 'mongodb';
+import { ClientSession, Collection, ObjectId } from 'mongodb';
 import { MongoDatabase } from '#shared/database/providers/mongo/MongoDatabase.js';
 import { InternalServerError } from 'routing-controllers';
 import { GLOBAL_TYPES } from '#root/types.js';
@@ -44,7 +44,16 @@ export class PeerReviewAssessmentRepository {
 
   async findByItemId(itemId: string): Promise<IPeerReviewAssessment | null> {
     await this.init();
-    const doc = await this.collection.findOne({ itemId: itemId as any });
+    // itemId in mongo is stored as ObjectId; coerce the incoming string so
+    // the query matches.
+    const filter = (() => {
+      try {
+        return { itemId: new ObjectId(itemId) as any };
+      } catch (_) {
+        return { itemId: itemId as any };
+      }
+    })();
+    const doc = await this.collection.findOne(filter);
     if (!doc) return null;
     return doc as IPeerReviewAssessment;
   }

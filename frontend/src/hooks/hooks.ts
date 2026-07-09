@@ -1496,6 +1496,29 @@ export function useSubmitPeerReview(): {
   };
 }
 
+// GET /peer-review-assessments/by-item/{itemId} — used by the student
+// course page to find which peer-review assessment a given section item
+// is, so it can render the submission form with the right rubric,
+// deadlines, cohort etc. Cast to `any` until OpenAPI schema regen picks
+// up the new route.
+export function usePeerReviewAssessmentByItemId(itemId: string | undefined): {
+  data: any,
+  isLoading: boolean,
+  error: string | null,
+} {
+  const result = (api as any).useQuery(
+    'get',
+    '/peer-review-assessments/by-item/{itemId}',
+    itemId ? { params: { path: { itemId } } } : ({} as any),
+    { enabled: !!itemId, retry: false },
+  );
+  return {
+    data: result.data,
+    isLoading: result.isLoading,
+    error: result.error ? (result.error.message || 'Load failed') : null,
+  };
+}
+
 // GET /students/me/submissions?assessmentId=...
 export function useMySubmission(assessmentId: string | undefined): {
   data: any,

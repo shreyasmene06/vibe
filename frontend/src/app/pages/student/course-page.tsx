@@ -19,6 +19,8 @@ import { useAuthStore } from "@/store/auth-store";
 import { useCourseStore } from "@/store/course-store";
 import { Link, Navigate, useRouter } from "@tanstack/react-router";
 import StudentProjectItem from "./components/StudentProjectItem";
+import { PeerReviewSubmissionForm } from "./peer-review/PeerReviewSubmissionForm";
+import { usePeerReviewAssessmentByItemId } from "@/hooks/hooks";
 const LazyStudentTimeslotModal = lazy(() => import("@/components/course/StudentTimeslotModal"));
 import type { Item, ItemContainerRef } from "@/types/item-container.types";
 import type { PendingStudentQuestionContext } from "@/types/student-question.types";
@@ -240,6 +242,13 @@ export default function CoursePage() {
   const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null);
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [currentItem, setCurrentItem] = useState<Item | null>(null);
+  const isPeerReviewItem =
+    currentItem?.type === 'PEER_REVIEW_ASSESSMENT' ||
+    // Some endpoints return lowercase; tolerate both.
+    (typeof currentItem?.type === 'string' && currentItem.type.toUpperCase() === 'PEER_REVIEW_ASSESSMENT');
+  const peerReviewAssessmentHook = usePeerReviewAssessmentByItemId(
+    isPeerReviewItem ? (currentItem as any)?._id : undefined,
+  );
   const [expandedModules, setExpandedModules] = useState<Record<string, boolean>>({});
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
   const [doGesture, setDoGesture] = useState<boolean>(false);
@@ -2520,6 +2529,35 @@ return false;
                         completedItemIdsRef={completedItemIdsRef}
                         isAlreadyWatched={currentItem.isAlreadyWatched}
                       />
+                    ) : isPeerReviewItem ? (
+                      // Peer-review assessment item. We must first fetch the
+                      // assessment record (rubric, deadlines, cohort) by
+                      // itemId, then render PeerReviewSubmissionForm.
+                      // Phase 4.2.5 — student side.
+                      <div className="p-6">
+                        {peerReviewAssessmentHook.isLoading ? (
+                          <p>Loading assessment…</p>
+                        ) : peerReviewAssessmentHook.error ? (
+                          <div className="p-4 bg-red-50 border border-red-200 rounded">
+                            <p className="text-red-700">
+                              Could not load this peer-review assessment:
+                              {' '}{peerReviewAssessmentHook.error}
+                            </p>
+                          </div>
+                        ) : peerReviewAssessmentHook.data ? (
+                          <PeerReviewSubmissionForm
+                            courseId={(currentItem as any)?.courseId}
+                            versionId={(currentItem as any)?.courseVersionId}
+                            itemId={(currentItem as any)?._id}
+                            assessment={peerReviewAssessmentHook.data}
+                            submissionDeadline={
+                              peerReviewAssessmentHook.data.submissionDeadline
+                            }
+                          />
+                        ) : (
+                          <p>No assessment found.</p>
+                        )}
+                      </div>
                     ) : (
 
                       <ItemContainer

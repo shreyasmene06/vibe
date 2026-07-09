@@ -312,6 +312,23 @@ export class PeerReviewAssessmentService extends BaseService {
   }
 
   /**
+   * Fetch an assessment by the underlying course item's id. Used by
+   * the student course page to discover which peer-review assessment
+   * a given item is, so it can render the submission form for the
+   * right assessment.
+   *
+   * Returns null if the item isn't a peer-review assessment (e.g. the
+   * student clicked a Project item by accident and the page is asking
+   * "is this a peer-review item?").
+   */
+  async getByItemId(itemId: string): Promise<IPeerReviewAssessment | null> {
+    if (!itemId) return null;
+    const a = await this.assessmentRepo.findByItemId(itemId);
+    if (!a || a.isDeleted) return null;
+    return a;
+  }
+
+  /**
    * Manually close an assessment (e.g. teacher wants to finalize scores
    * before the review deadline has elapsed). Phase 5's
    * FinalizationRunner cron also calls this on its own timer.
