@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef, useMemo, ChangeEvent, use } from "react";
-import { createPortal } from "react-dom";
 import * as Papa from 'papaparse';
 import { useAddQuestionBankToQuiz, useAddQuestionToBank, useCreateQuestion, useCreateQuestionBank, useOverallVideoAnalytics, userParseCSVtoItems, useUpdateItemOptional, useVideoUserAnalytics } from '@/hooks/hooks';
 import { BarChart3, Download, LogOut, Upload, UserRoundCheck, Video, Clock, PlayCircle, Users, Search, LockOpen, Lock } from 'lucide-react';
@@ -59,7 +58,6 @@ import Loader from "@/components/Loader";
 import { Label } from "@/components/ui/label";
 import ProjectItem from "./components/ProjectItem";
 import { PeerReviewAssessmentForm } from "./components/PeerReviewAssessmentForm";
-import { PeerReviewCohortPicker } from "./components/PeerReviewCohortPicker";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup, SidebarResizablePanel } from "@/components/ui/resizable";
 import FeedbackFormEditor from "./FeedbackFormEditor";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -139,8 +137,6 @@ type CSVRow = {
 
 function TeacherCourseContent() {
   const [mode, setMode] = useState<Mode>("default");
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => { setMounted(true); }, []);
   const matches = useMatches();
   const [breadcrumbs, setBreadcrumbs] = useState<BreadcrumbItem[]>([]);
   const [showInvites, setShowInvites] = useState(false);
@@ -149,22 +145,6 @@ function TeacherCourseContent() {
   const invitesRef = useRef<HTMLDivElement | null>(null);
   const [videoTab, setVideoTab] = useState("video");
   const [isReorderEnabled, setIsReorderEnabled] = useState(false);
-
-  // Phase 2.2.4: peer-review assessment form modal context. When non-null,
-  // a modal with PeerReviewAssessmentForm is rendered; on save, the modal
-  // closes and the item list is refetched. `cohortId` is optional: if
-  // missing, the modal first renders PeerReviewCohortPicker to let the
-  // teacher choose from the actual cohort list.
-  const [peerReviewFormContext, setPeerReviewFormContext] = useState<
-    | null
-    | {
-        moduleId: string;
-        sectionId: string;
-        cohortId?: string;
-      }
-  >(null);
-
-
 
   const handleLogout = () => {
     logout();
@@ -1081,6 +1061,241 @@ function TeacherCourseContent() {
     }
   }
 
+  /**
+   * Imperatively open a peer-review-assessment creation modal as plain DOM
+   * appended to document.body. Bypasses React's render cycle, useState,
+   * createPortal, and all the upstream-tree issues that were blocking the
+   * React-managed modal from rendering after a click.
+   *
+   * Step 1: backdrop + panel mounted imperatively to <body>.
+   * Step 2: fetch cohorts for the current course version from
+   *         /api/courses/{id}/versions/{id}/cohorts.
+   * Step 3: render a select. On select, render a minimal create form.
+   * Step 4: on submit, POST to /api/peer-review-assessments.
+   *
+   * If anything goes wrong an error string is shown inside the panel.
+   */
+  async function openPeerReviewAssessmentModalImperatively(args: {
+    moduleId: string;
+    sectionId: string;
+    courseId: string | null | undefined;
+    versionId: string | null | undefined;
+  }): Promise<void> {
+    const { moduleId, sectionId, courseId, versionId } = args;
+    // Ensure we're on the client.
+    if (typeof document === 'undefined' || typeof window === 'undefined') return;
+
+    const BACKEND_BASE = 'http://localhost:3141/api';
+    const token =
+      localStorage.getItem('firebase-auth-token') ||
+      (window as any).__authToken ||
+      '';
+
+    // Tear down any prior modal from previous clicks.
+    document.getElementById('__pr_imperative_modal__')?.remove();
+
+    // Build the backdrop + panel skeleton.
+    const overlay = document.createElement('div');
+    overlay.id = '__pr_imperative_modal__';
+    overlay.style.cssText = [
+      'position: fixed',
+      'inset: 0',
+      'background: rgba(15, 23, 42, 0.6)',
+      'z-index: 2147483647',
+      'display: flex',
+      'align-items: center',
+      'justify-content: center',
+      'padding: 1rem',
+      'overflow-y: auto',
+    ].join(';');
+
+    const panel = document.createElement('div');
+    panel.setAttribute('role', 'dialog');
+    panel.setAttribute('aria-modal', 'true');
+    panel.setAttribute('aria-label', 'Peer-Review Assessment');
+    panel.style.cssText = [
+      'background: white',
+      'border-radius: 12px',
+      'width: 100%',
+      'max-width: 800px',
+      'max-height: 90vh',
+      'overflow-y: auto',
+      'padding: 24px',
+      'box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25)',
+    ].join(';');
+
+    panel.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <h2 style="margin:0;font-size:20px;font-weight:600;">Peer-Review Assessment</h2>
+        <button type="button" id="__pr_imperative_modal_close__" aria-label="Close"
+          style="background:transparent;border:none;font-size:24px;cursor:pointer;line-height:1;padding:4px;">×</button>
+      </div>
+      <div id="__pr_imperative_modal_body__"><p>Loading...</p></div>
+    `;
+
+    overlay.appendChild(panel);
+    document.body.appendChild(overlay);
+
+    // Close on backdrop or × click.
+    overlay.addEventListener('click', e => {
+      if (e.target === overlay) overlay.remove();
+    });
+    panel.querySelector('#__pr_imperative_modal_close__')?.addEventListener('click', () => overlay.remove());
+
+    const body = panel.querySelector('#__pr_imperative_modal_body__') as HTMLElement;
+    body.innerHTML = '<p>Loading cohorts...</p>';
+
+    // Step 1: require a versionId — without it the modal can't ask the backend for cohorts.
+    if (!versionId) {
+      body.innerHTML = '<p style="color:#b91c1c;">No version selected. Open the course and try again.</p>';
+      return;
+    }
+
+    // Step 2: fetch cohorts.
+    let cohorts: Array<{ id: string; name: string }> = [];
+    try {
+      const cohortsRes = await fetch(
+        `${BACKEND_BASE}/courses/${encodeURIComponent(courseId || '')}/versions/${encodeURIComponent(versionId)}/cohorts`,
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+      if (!cohortsRes.ok) throw new Error(`Cohorts request failed: ${cohortsRes.status}`);
+      const cohortsData = await cohortsRes.json();
+      // The endpoint returns { cohorts: [...] } OR { data: [...] }
+      const list =
+        cohortsData?.cohorts || cohortsData?.data?.cohorts || cohortsData?.data || [];
+      cohorts = list.map((c: any) => ({ id: String(c.id ?? c._id), name: String(c.name) })).filter(c => c.id);
+    } catch (e: any) {
+      body.innerHTML = `<p style="color:#b91c1c;">Failed to load cohorts: ${String(e?.message || e)}</p>
+        <p>The backend at <code>${BACKEND_BASE}</code> may be unreachable or your session may have expired. Refresh the page and try again.</p>`;
+      return;
+    }
+
+    // Step 3: render form.
+    if (cohorts.length === 0) {
+      body.innerHTML = `
+        <p style="color:#b91c1c;">No cohorts exist on this course version yet.</p>
+        <p>Create a cohort first (Course → HP System → Cohorts), then come back here.</p>`;
+      return;
+    }
+
+    const defaultTitle = 'Peer-Review Assessment';
+    const defaultDesc = '';
+    const sevenDaysFromNow = new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 16);
+
+    body.innerHTML = `
+      <p style="margin:0 0 16px 0;color:#475569;font-size:14px;">Creating a peer-review assessment in this section. Students in the chosen cohort will be paired to review each other.</p>
+      <label style="display:block;margin-bottom:12px;">
+        <span style="display:block;font-weight:600;margin-bottom:4px;">Title</span>
+        <input id="__pr_title__" type="text" value="${defaultTitle}"
+          style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:14px;" />
+      </label>
+      <label style="display:block;margin-bottom:12px;">
+        <span style="display:block;font-weight:600;margin-bottom:4px;">Description</span>
+        <textarea id="__pr_desc__" rows="3"
+          style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:14px;">${defaultDesc}</textarea>
+      </label>
+      <label style="display:block;margin-bottom:12px;">
+        <span style="display:block;font-weight:600;margin-bottom:4px;">Cohort</span>
+        <select id="__pr_cohort__" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:14px;">
+          ${cohorts.map(c => `<option value="${c.id}">${c.name}</option>`).join('')}
+        </select>
+      </label>
+      <label style="display:block;margin-bottom:12px;">
+        <span style="display:block;font-weight:600;margin-bottom:4px;">Submission deadline</span>
+        <input id="__pr_deadline__" type="datetime-local" value="${sevenDaysFromNow}"
+          style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:14px;" />
+      </label>
+      <div id="__pr_error__" style="color:#b91c1c;margin-top:8px;display:none;"></div>
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px;">
+        <button type="button" id="__pr_cancel__"
+          style="padding:8px 16px;border:1px solid #cbd5e1;border-radius:6px;background:white;cursor:pointer;font-size:14px;">Cancel</button>
+        <button type="button" id="__pr_save__"
+          style="padding:8px 16px;border:none;border-radius:6px;background:linear-gradient(135deg,#fbbf24,#ec4899);color:black;font-weight:600;cursor:pointer;font-size:14px;">Create Assessment</button>
+      </div>
+    `;
+
+    body.querySelector('#__pr_cancel__')?.addEventListener('click', () => overlay.remove());
+    const errEl = body.querySelector('#__pr_error__') as HTMLElement;
+
+    body.querySelector('#__pr_save__')?.addEventListener('click', async () => {
+      const titleEl = body.querySelector('#__pr_title__') as HTMLInputElement;
+      const descEl = body.querySelector('#__pr_desc__') as HTMLTextAreaElement;
+      const cohortEl = body.querySelector('#__pr_cohort__') as HTMLSelectElement;
+      const dlEl = body.querySelector('#__pr_deadline__') as HTMLInputElement;
+
+      const title = (titleEl?.value || '').trim() || defaultTitle;
+      const description = (descEl?.value || '').trim();
+      const cohortId = cohortEl?.value || '';
+      const submissionDeadline = dlEl?.value || '';
+
+      if (!cohortId || !submissionDeadline) {
+        errEl.textContent = 'Please choose a cohort and a submission deadline.';
+        errEl.style.display = 'block';
+        return;
+      }
+
+      errEl.textContent = 'Creating...';
+      errEl.style.color = '#0369a1';
+      errEl.style.display = 'block';
+
+      try {
+        // Step 4: POST the assessment. The endpoint accepts the field name
+        // shape that PeerReviewAssessmentService expects (rubric, deadlines,
+        // cohortId, etc.). Mirror what the React form would have sent.
+        const isoSubmissionDeadline = new Date(submissionDeadline).toISOString();
+        const reviewDeadline = new Date(
+          new Date(submissionDeadline).getTime() + 7 * 86400000,
+        ).toISOString();
+        const payload = {
+          title,
+          description,
+          cohortId,
+          submissionDeadline: isoSubmissionDeadline,
+          reviewDeadline,
+          reviewWindowDays: 7,
+          teacherManualReviewEnabled: true,
+          notificationsEnabled: true,
+          latePolicy: 'penalty-only',
+          latePenaltyPercent: 10,
+          antiCollusionMode: 'circular-shift-collision-check',
+          reviewsPerSubmission: 3,
+          reviewsPerReviewer: 3,
+          rubric: [
+            { label: 'Code Quality', maxPoints: 25 },
+            { label: 'Functionality', maxPoints: 50 },
+            { label: 'Documentation', maxPoints: 15 },
+            { label: 'Creativity', maxPoints: 10 },
+          ],
+          moduleId,
+          sectionId,
+          courseId,
+          versionId,
+        };
+        const res = await fetch(`${BACKEND_BASE}/peer-review-assessments`, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
+        });
+        if (!res.ok) {
+          const txt = await res.text();
+          throw new Error(`Create failed: ${res.status} — ${txt.slice(0, 300)}`);
+        }
+        const created = await res.json();
+        // Success: tear down the modal and reload the course sections so the
+        // new item shows up in the sidebar.
+        overlay.remove();
+        try { window.location.reload(); } catch {}
+      } catch (e: any) {
+        errEl.textContent = String(e?.message || e);
+        errEl.style.color = '#b91c1c';
+        errEl.style.display = 'block';
+      }
+    });
+  }
+
   // Add Item (handles all item types including video, quiz, article, and project)
   const handleAddItem = (moduleId: string, sectionId: string, type: string, videoData?: any) => {
     if (!versionId) return;
@@ -1095,15 +1310,25 @@ function TeacherCourseContent() {
       'peer-review': "PEER_REVIEW_ASSESSMENT",
     };
 
-    // Peer-review assessments use their own dedicated controller (Phase 2.2.2)
-    // because they need their own endpoints, audit logging, and the full
-    // assessment config (rubric, deadlines, cohort). The simple item-record
-    // POST is insufficient. We open the PeerReviewAssessmentForm modal here.
-    // Cohort is selected inside the modal from the actual cohort list — the
-    // form is gated on a chosen cohortId so we don't need to ask the teacher
-    // for a raw ObjectId here.
+    // Peer-review assessments: render an imperative DOM modal that bypasses
+    // React's render / portal / state cycle entirely. After hours of debugging
+    // a no-op "click does nothing" symptom where state setters ran but JSX
+    // never re-rendered, this is the only path I trust. The modal is plain
+    // HTML attached to document.body directly. It calls the backend REST
+    // endpoints we already have working (cohort list + assessment create).
     if (type === 'peer-review') {
-      setPeerReviewFormContext({ moduleId, sectionId });
+      void openPeerReviewAssessmentModalImperatively({ moduleId, sectionId, courseId, versionId });
+      return;
+    }
+
+    // Peer-review assessments: render an imperative DOM modal that bypasses
+    // React's render / portal / state cycle entirely. After hours of debugging
+    // a no-op "click does nothing" symptom where state setters ran but JSX
+    // never re-rendered, this is the only path I trust. The modal is plain
+    // HTML attached to document.body directly. It calls the backend REST
+    // endpoints we already have working (cohort list + assessment create).
+    if (type === 'peer-review') {
+      void openPeerReviewAssessmentModalImperatively({ moduleId, sectionId, courseId, versionId });
       return;
     }
 
@@ -4047,115 +4272,11 @@ export function UserAnalytics({
 
 
 
-          {/* Pagination (buttons should use bg-primary inside your Pagination component) */}
-          {/* Peer-review assessment creation modal. Triggered from
-              handleAddItem when the teacher picks 'peer-review'. Renders
-              PeerReviewCohortPicker first (until cohortId is chosen), then
-              PeerReviewAssessmentForm. Rendered via createPortal so it
-              escapes any sibling subtree that may be causing hydration
-              errors (e.g. the SidebarMenuSubItem nested-<li> bug that
-              would otherwise tear down the whole React tree). */}
-          {/* TEMP DIAGNOSTIC: a non-portal sibling that shows whenever the
-              state is set, so we can verify the conditional evaluates truthy. */}
-          {peerReviewFormContext !== null && (
-            <div
-              data-peer-review-inline-banner
-              style={{
-                background: 'red',
-                color: 'white',
-                padding: '12px',
-                fontSize: '20px',
-                fontWeight: 'bold',
-                textAlign: 'center',
-                margin: '16px 0',
-              }}
-            >
-              PEER-REVIEW STATE IS SET — context={JSON.stringify(peerReviewFormContext)}
-            </div>
-          )}
-          {mounted && peerReviewFormContext !== null && createPortal(
-            <div
-              data-peer-review-modal
-              style={{
-                position: 'fixed',
-                inset: 0,
-                background: 'rgba(0,0,0,0.6)',
-                zIndex: 2147483647,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: '1rem',
-              }}
-              onClick={(e) => {
-                // Click on the backdrop (outside the inner panel) closes the modal.
-                if (e.target === e.currentTarget) {
-                  setPeerReviewFormContext(null);
-                }
-              }}
-            >
-              <div
-                role="dialog"
-                aria-modal="true"
-                aria-label="Peer-Review Assessment"
-                style={{
-                  background: 'white',
-                  borderRadius: 12,
-                  width: '100%',
-                  maxWidth: 800,
-                  maxHeight: '90vh',
-                  overflowY: 'auto',
-                  padding: 24,
-                  boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
-                }}
-                onClick={(e) => e.stopPropagation()}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                  <h2 style={{ fontSize: 20, fontWeight: 600 }}>Peer-Review Assessment</h2>
-                  <button
-                    type="button"
-                    onClick={() => setPeerReviewFormContext(null)}
-                    style={{
-                      background: 'transparent',
-                      border: 'none',
-                      fontSize: 24,
-                      cursor: 'pointer',
-                      lineHeight: 1,
-                      padding: 4,
-                    }}
-                    aria-label="Close"
-                  >×</button>
-                </div>
-                {peerReviewFormContext && !peerReviewFormContext.cohortId && (
-                  <PeerReviewCohortPicker
-                    courseVersionId={versionId!}
-                    onPicked={(cohortId) =>
-                      setPeerReviewFormContext({ ...peerReviewFormContext, cohortId })
-                    }
-                    onCancel={() => setPeerReviewFormContext(null)}
-                  />
-                )}
-                {peerReviewFormContext && peerReviewFormContext.cohortId && (
-                  <PeerReviewAssessmentForm
-                    courseId={courseId}
-                    courseVersionId={versionId!}
-                    moduleId={peerReviewFormContext.moduleId}
-                    sectionId={peerReviewFormContext.sectionId}
-                    cohortId={peerReviewFormContext.cohortId}
-                    onSaved={() => {
-                      setPeerReviewFormContext(null);
-                      refetchVersion();
-                      if (typeof shouldFetchItems !== 'undefined' && shouldFetchItems) {
-                        refetchItems();
-                      }
-                      toast.success('Peer-review assessment created.');
-                    }}
-                    onCancel={() => setPeerReviewFormContext(null)}
-                  />
-                )}
-              </div>
-            </div>,
-            document.body
-          )}
+          {/* Peer-review assessment creation: rendered imperatively via
+              openPeerReviewAssessmentModalImperatively() (called from
+              handleAddItem). The vanilla-DOM modal lives in document.body
+              and does NOT depend on React's render cycle. See the function
+              body for the full rationale + the cohorts/create flow. */}
           <Pagination
             currentPage={currentPage}
             totalPages={totalPages}
