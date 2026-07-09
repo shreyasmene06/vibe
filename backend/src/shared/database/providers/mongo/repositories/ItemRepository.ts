@@ -268,10 +268,6 @@ export class ItemRepository implements IItemRepository {
       { 'items._id': itemFilter },
       { session },
     );
-    // const itemsGroup = await this.itemsGroupCollection.findOne(
-    //   { 'items._id': itemId },
-    //   { session }
-    // );
 
     if (!itemsGroup) {
       return null;
@@ -283,6 +279,26 @@ export class ItemRepository implements IItemRepository {
   }
 
   // Methods for Item CRUD operations
+  async findItemsGroupBySectionId(
+    sectionId: string,
+    session?: ClientSession,
+  ): Promise<ItemsGroup | null> {
+    await this.init();
+    const filter =
+      typeof sectionId === 'string' && ObjectId.isValid(sectionId)
+        ? new ObjectId(sectionId)
+        : sectionId;
+    const itemsGroup = await this.itemsGroupCollection.findOne(
+      { sectionId: filter },
+      { session },
+    );
+    return itemsGroup
+      ? (instanceToPlain(
+          Object.assign(new ItemsGroup(), itemsGroup),
+        ) as ItemsGroup)
+      : null;
+  }
+
   async createItem(item: Item, session?: ClientSession): Promise<Item | null> {
     await this.init();
     const auditTrail = new AuditTrails(item._id.toString());

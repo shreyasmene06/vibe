@@ -15,6 +15,7 @@ import { USERS_TYPES } from '#root/modules/users/types.js';
 import { PeerReviewAssessmentItem } from '#courses/classes/transformers/Item.js';
 import {
   IPeerReviewAssessment,
+  ItemType,
   PeerReviewAntiCollusionMode,
   PeerReviewLatePolicy,
 } from '#shared/interfaces/models.js';
@@ -175,6 +176,31 @@ export class PeerReviewAssessmentService extends BaseService {
         assessment,
         session,
       );
+
+      // 4. Link the new item to the section's itemsGroup so it appears
+      //    in the teacher's course-content sidebar. Without this, the
+      //    item is created in the peer_review_assessments collection but
+      //    never surfaces in the section, so the UI shows no new item
+      //    after a hard refresh.
+      const itemsGroup = await this.itemRepo.findItemsGroupBySectionId(
+        body.sectionId,
+        session,
+      );
+      if (itemsGroup) {
+        const newItemRef = {
+          _id: itemObjectId,
+          type: ItemType.PEER_REVIEW_ASSESSMENT,
+          order: `${Date.now().toString(36)}|hzzzzz:`,
+          isHidden: false,
+          name: body.itemName,
+        };
+        itemsGroup.items = (itemsGroup.items ?? []).concat(newItemRef as any);
+        await this.itemRepo.updateItemsGroup(
+          String(itemsGroup._id),
+          itemsGroup,
+          session,
+        );
+      }
 
       return { assessmentId, itemId };
     });
