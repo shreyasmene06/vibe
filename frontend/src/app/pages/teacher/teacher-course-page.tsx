@@ -10,7 +10,7 @@ const MAX_DESCRIPTION_LENGTH = 1000;
 
 import {
   Sidebar, SidebarHeader, SidebarContent, SidebarMenu, SidebarMenuItem,
-  SidebarMenuButton, SidebarMenuSub, SidebarMenuSubItem, SidebarMenuSubButton,
+  SidebarMenuButton, SidebarMenuSub, SidebarMenuSubButton,
   SidebarInset, SidebarProvider, SidebarFooter, useSidebar,
   SidebarTrigger
 } from "@/components/ui/sidebar";
@@ -2035,8 +2035,19 @@ function TeacherCourseContent() {
                                                     handleMoveItem(module.moduleId, section.sectionId, item._id, versionId);
                                                   }}
                                                 >
-                                                  <SidebarMenuSubItem key={item._id}>
-                                                    <SidebarMenuSubButton
+                                                {/* Inline <SidebarMenuSubItem> attrs here instead of using the
+                                                    component, because <Reorder.Item> already renders an <li>
+                                                    and nesting <SidebarMenuSubItem>'s <li> inside it caused
+                                                    the "In HTML, <li> cannot be a descendant of <li>" hydration
+                                                    error that broke the whole React tree (manifesting as the
+                                                    "Add Item -> Peer Review Assessment" click being a no-op). */}
+                                                <div
+                                                  key={item._id}
+                                                  data-slot="sidebar-menu-sub-item"
+                                                  data-sidebar="menu-sub-item"
+                                                  className="group/menu-sub-item relative"
+                                                >
+                                                  <SidebarMenuSubButton
                                                       className={`justify-start ${selectedItem.name === getItemLabel({
                                                         itemId: item._id,
                                                         itemType: item.type,
@@ -2141,7 +2152,7 @@ function TeacherCourseContent() {
                                                         <span className="sr-only">View student questions</span>
                                                       </Button>
                                                     )}
-                                                  </SidebarMenuSubItem>
+                                                  </div>
                                                 </Reorder.Item>
                                               ))}
                                             <div className="ml-6 mt-2">
