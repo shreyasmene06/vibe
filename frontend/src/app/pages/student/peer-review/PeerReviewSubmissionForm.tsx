@@ -229,34 +229,43 @@ export function PeerReviewSubmissionForm({
     // intentionally only react to storageKey changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [storageKey]);
-  // summaryForThis: which entry in the bulk submission summary
-  // corresponds to THIS assessment. Drives the read-only state.
-  const summaryForThis = useMemo(() => {
-    if (!summaryQuery.data || !assessmentId) return null;
-    return summaryQuery.data.find(
-      (m) => String(m.assessmentId) === assessmentId,
-    );
-  }, [summaryQuery.data, assessmentId]);
-  const existing = useMemo(() => {
-    // Priority: server summary (canonical truth, flat response) >
-    // localStorage optimistic update (just-submitted) > nothing.
-    if (summaryForThis?.submitted) {
-      return {
-        _id: undefined,
+  // Find the entry for THIS assessment in the bulk summary.
+  // summaryForThis is the canonical "did the student submit?" answer
+  // coming from the database via the flat summary endpoint. Done as a
+  // synchronous expression (not useMemo) so every render recomputes —
+  // cheap, but more important: it always reflects the latest
+  // summaryQuery.data, no stale-cache edge cases.
+  const summaryForThis: { assessmentId: string; submitted: boolean; submittedAt?: string } | null =
+    (summaryQuery.data && assessmentId)
+      ? (summaryQuery.data.find(
+          (m) => String(m.assessmentId) === assessmentId,
+        ) ?? null)
+      : null;
+  // Synthetic submission doc when the summary says "submitted". This
+  // is what the read-only view consumes.
+  const serverExisting = summaryForThis?.submitted
+    ? {
+        _id: undefined as any,
         assessmentId,
         studentId: '',
+        courseId: '',
+        courseVersionId: '',
+        cohortId: '',
         notes: '',
-        links: [],
+        links: [] as any[],
         submittedAt: summaryForThis.submittedAt,
         isLate: false,
         reviewsCompleted: 0,
         reviewsTotal: 3,
-        reviewAssignmentIds: [],
+        reviewAssignmentIds: [] as string[],
         teacherOverridden: false,
-      };
-    }
-    return localExisting;
-  }, [summaryForThis, localExisting, assessmentId]);
+      }
+    : null;
+  // existing = server truth FIRST, localStorage optimistic SECOND.
+  // Server is the canonical source per ViBe's progress-tracking
+  // pattern; localStorage is just a fast-path while waiting for the
+  // next refetch to land.
+  const existing = serverExisting ?? localExisting;
   // Belt-and-braces: keep the per-key cache in sync as a defensive
   // measure, even though onSave writes synchronously. If anything
   // else (a refetch landing, etc.) updates localExisting, this
