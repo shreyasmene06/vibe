@@ -127,7 +127,11 @@ export function PeerReviewSubmissionForm({
   const cohortId = cohortIdProp || (currentCourse?.cohortId ?? '');
   const submitHook = useSubmitPeerReview();
   const submissionQuery = useMySubmission(assessment?._id || assessment?.assessmentId);
-  const serverExisting = submissionQuery.data;
+  // Server fetch is run for diagnostic logging only — we ignore its
+  // result for state purposes because openapi-fetch's querySerializer
+  // can't handle nested arrays in the response. localStorage is the
+  // sole source of truth for "did this student submit?".
+  void submissionQuery;
   // Local override of the submission doc — set when our POST returns
   // (before the refetch lands) or when the server refetch comes back.
   // This bypasses react-query's openapi-fetch cache-key mystery and
@@ -210,10 +214,11 @@ export function PeerReviewSubmissionForm({
     // intentionally only react to storageKey changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [storageKey]);
-  const existing = localExisting ?? serverExisting;
-  // Whenever serverExisting lands, mirror it into localStorage so a
-  // hard refresh shows the read-only view even if the GET fails
-  // next time. Also write when we set localExisting ourselves.
+  const existing = localExisting;
+  // Belt-and-braces: keep the per-key cache in sync as a defensive
+  // measure, even though onSave writes synchronously. If anything
+  // else (a refetch landing, etc.) updates localExisting, this
+  // mirrors it to per-key storage so the next mount has a hit.
   useEffect(() => {
     if (existing && typeof window !== 'undefined' && storageKey) {
       try { window.localStorage.setItem(storageKey, JSON.stringify(existing)); } catch {}
@@ -222,8 +227,8 @@ export function PeerReviewSubmissionForm({
   console.log('[peer-review] form mount', {
     storageKey,
     hasLocalCached: !!localExisting,
-    serverExistingIsTruthy: !!serverExisting,
-    serverExistingShape: serverExisting ? Object.keys(serverExisting).slice(0, 5) : null,
+    serverQueryIsTruthy: !!submissionQuery.data,
+    serverQueryShape: submissionQuery.data ? Object.keys(submissionQuery.data).slice(0, 5) : null,
     serverError: typeof submissionQuery.error === 'string' ? submissionQuery.error : (submissionQuery.error as any)?.message ?? null,
     finalExistingIsTruthy: !!existing,
   });
