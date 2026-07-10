@@ -107,14 +107,17 @@ export function PeerReviewSubmissionForm({
 }: Props) {
   const submitHook = useSubmitPeerReview();
   const submissionQuery = useMySubmission(assessment?._id || assessment?.assessmentId);
-  const existing = submissionQuery.data;
+  const serverExisting = submissionQuery.data;
+  // Local override of the submission doc — set when our POST returns
+  // (before the refetch lands) or when the server refetch comes back.
+  // This bypasses react-query's openapi-fetch cache-key mystery and
+  // guarantees the form flips to the read-only view on first click.
+  const [localExisting, setLocalExisting] = useState<any | null>(null);
+  const existing = localExisting ?? serverExisting;
   // Local flag — flips true on the first submit click. Combined with
   // the read-only "if (existing) return" branch, this prevents the
   // user from spam-clicking Submit before the refetch lands.
   const [hasSubmitted, setHasSubmitted] = useState(false);
-  // refetch on mount so an already-submitted student sees the "submitted" view
-  // immediately after a page reload (rather than the empty form).
-  useEffect(() => { submissionQuery.refetch(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [notes, setNotes] = useState(existing?.notes ?? "");
   const [links, setLinks] = useState<StudentLink[]>(
@@ -178,7 +181,7 @@ export function PeerReviewSubmissionForm({
       // and the user can click Submit again.
       console.log('[peer-review] setting hasSubmitted=true BEFORE POST');
       setHasSubmitted(true);
-      await submitHook.mutateAsync({
+      const result = await submitHook.mutateAsync({
         params: { path: { courseId: courseId as any, versionId: versionId as any, itemId: itemId as any } },
         body: {
           notes,
@@ -189,12 +192,32 @@ export function PeerReviewSubmissionForm({
           })),
         },
       });
-      console.log('[peer-review] POST returned 2xx');
-      // Re-fetch so `existing` becomes the new submission — the form
-      // stays in the "Submitted" state via hasSubmitted even if the
-      // refetch fails for any reason.
-      await submissionQuery.refetch();
-      console.log('[peer-review] refetch done, hasSubmitted is still true');
+      console.log('[peer-review] POST returned 2xx', result);
+      // Build the submission doc locally and set it as the
+      // authoritative existing doc. The form re-renders to the
+      // read-only view on the next paint. No refetch is needed.
+      const newSubmission = {
+        _id: (result as any)?.submissionId,
+        assessmentId: assessment._id || assessment.assessmentId,
+        studentId: '',
+        courseId: (assessment as any).courseId,
+        courseVersionId: (assessment as any).courseVersionId,
+        cohortId: (assessment as any).cohortId,
+        notes: notes,
+        links: links.map(l => ({
+          url: l.url.trim(),
+          label: l.label.trim(),
+          kind: l.kind,
+        })),
+        submittedAt: new Date().toISOString(),
+        isLate: new Date() > new Date((assessment as any).submissionDeadline),
+        reviewsCompleted: 0,
+        reviewsTotal: 3,
+        reviewAssignmentIds: [],
+        teacherOverridden: false,
+      };
+      setLocalExisting(newSubmission);
+      console.log('[peer-review] setLocalExisting with submissionId', newSubmission._id);
       toast.success("Submission saved. You'll need to review 3 of your peers next.");
     } catch (e: any) {
       // Roll back the local flag so the user can retry on failure.
