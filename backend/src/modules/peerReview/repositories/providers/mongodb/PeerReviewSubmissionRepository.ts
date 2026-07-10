@@ -1,6 +1,6 @@
 import 'reflect-metadata';
 import { injectable, inject } from 'inversify';
-import { ClientSession, Collection } from 'mongodb';
+import { ClientSession, Collection, ObjectId } from 'mongodb';
 import { MongoDatabase } from '#shared/database/providers/mongo/MongoDatabase.js';
 import { InternalServerError } from 'routing-controllers';
 import { GLOBAL_TYPES } from '#root/types.js';
@@ -49,10 +49,16 @@ export class PeerReviewSubmissionRepository {
     studentId: string,
   ): Promise<IPeerReviewSubmission | null> {
     await this.init();
-    const doc = await this.collection.findOne({
-      assessmentId: assessmentId as any,
-      studentId: studentId as any,
-    });
+    // assessmentId is stored as an ObjectId in mongo; the URL
+    // passes it as a string, so coerce here. studentId stays a
+    // string — it's stored as a plain string.
+    const filter: any = { studentId: studentId as any };
+    if (ObjectId.isValid(assessmentId)) {
+      filter.assessmentId = new ObjectId(assessmentId);
+    } else {
+      filter.assessmentId = assessmentId as any;
+    }
+    const doc = await this.collection.findOne(filter);
     if (!doc) return null;
     return doc as IPeerReviewSubmission;
   }
