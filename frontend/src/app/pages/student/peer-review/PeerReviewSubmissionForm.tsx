@@ -155,6 +155,14 @@ export function PeerReviewSubmissionForm({
   // Also clear any stale "[object Object]" keys left over from the
   // version before we coerced assessmentId to a string — those keys
   // would otherwise shadow per-assessment keys with cross-item bleed.
+  // CRITICAL: localStorage is the primary source of truth here. The
+  // GET in this codebase can fail with "Deeply-nested arrays/objects
+  // aren't supported" from openapi-fetch's querySerializer when the
+  // server response has nested fields — which the submission doc
+  // does (links: [{...}]). When that happens serverExisting stays
+  // undefined and the form flips back to editable on revisit, which
+  // is the bug the user reported. localStorage is reliable, the GET
+  // is not, so we trust localStorage.
   useEffect(() => {
     if (typeof window === 'undefined') return;
     try {
@@ -169,8 +177,14 @@ export function PeerReviewSubmissionForm({
     if (!storageKey) return;
     try {
       const cached = window.localStorage.getItem(storageKey);
-      if (cached) setLocalExisting(JSON.parse(cached));
-    } catch {}
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        setLocalExisting(parsed);
+        console.log('[peer-review] hydrated from localStorage for', storageKey);
+      }
+    } catch (e) {
+      console.warn('[peer-review] localStorage parse failed', e);
+    }
     // intentionally only react to storageKey changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [storageKey]);
@@ -188,9 +202,19 @@ export function PeerReviewSubmissionForm({
     hasLocalCached: !!localExisting,
     serverExistingIsTruthy: !!serverExisting,
     serverExistingShape: serverExisting ? Object.keys(serverExisting).slice(0, 5) : null,
-    serverError: submissionQuery.error,
+    serverError: typeof submissionQuery.error === 'string' ? submissionQuery.error : (submissionQuery.error as any)?.message ?? null,
     finalExistingIsTruthy: !!existing,
   });
+  // Debug: surface ALL localStorage entries with the peerReview prefix
+  // so we can see if the cache is present.
+  if (typeof window !== 'undefined') {
+    const keys: string[] = [];
+    for (let i = 0; i < window.localStorage.length; i++) {
+      const k = window.localStorage.key(i);
+      if (k && k.startsWith('peerReview')) keys.push(k);
+    }
+    console.log('[peer-review] localStorage keys:', keys);
+  }
   // Local flag — flips true on the first submit click. Combined with
   // the read-only "if (existing) return" branch, this prevents the
   // user from spam-clicking Submit before the refetch lands.
@@ -321,6 +345,20 @@ export function PeerReviewSubmissionForm({
         teacherOverridden: false,
       };
       setLocalExisting(newSubmission);
+      // Forcefully write to localStorage synchronously — don't rely on
+      // the useEffect writeback chain, which only fires after the next
+      // render. The POST just succeeded; persist immediately so a
+      // navigation away from this item (or any reload) still sees
+      // the submitted state via localStorage even if the writeback
+      // effect never gets a chance to flush.
+      if (storageKey && typeof window !== 'undefined') {
+        try {
+          window.localStorage.setItem(storageKey, JSON.stringify(newSubmission));
+          console.log('[peer-review] persisted submission to localStorage', storageKey);
+        } catch (e) {
+          console.warn('[peer-review] localStorage write failed', e);
+        }
+      }
       console.log('[peer-review] setLocalExisting with submissionId', newSubmission._id);
       // Mark the item complete in the user's progress (mirrors the
       // VIDEO flow's stop-on-end behaviour). This is what flips the
