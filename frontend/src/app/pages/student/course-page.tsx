@@ -2552,6 +2552,9 @@ return false;
                             courseId={(currentCourse as any)?.courseId}
                             versionId={(currentCourse as any)?.versionId}
                             itemId={(currentItem as any)?._id}
+                            moduleId={(currentItem as any)?.moduleId}
+                            sectionId={(currentItem as any)?.sectionId}
+                            cohortId={(currentItem as any)?.cohortId}
                             assessment={peerReviewAssessmentHook.data}
                             submissionDeadline={
                               peerReviewAssessmentHook.data.submissionDeadline

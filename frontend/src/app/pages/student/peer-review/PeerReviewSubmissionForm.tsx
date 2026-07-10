@@ -11,6 +11,8 @@ import {
   useSubmitPeerReview,
   useMySubmission,
   useCheckPeerReviewLink,
+  useStartItem,
+  useStopItem,
 } from "@/hooks/hooks";
 
 /**
@@ -33,8 +35,11 @@ interface Props {
   courseId: string;
   versionId: string;
   itemId: string;
+  moduleId: string;
+  sectionId: string;
   assessment: any;
   submissionDeadline?: Date;
+  cohortId?: string;
 }
 
 interface StudentLink {
@@ -105,6 +110,8 @@ export function PeerReviewSubmissionForm({
   assessment,
   submissionDeadline,
 }: Props) {
+  const startItem = useStartItem();
+  const stopItem = useStopItem();
   const submitHook = useSubmitPeerReview();
   const submissionQuery = useMySubmission(assessment?._id || assessment?.assessmentId);
   const serverExisting = submissionQuery.data;
@@ -173,6 +180,33 @@ export function PeerReviewSubmissionForm({
       );
     }
   }, [existing]);
+  // Track this item in the user's progress (mirrors the VIDEO flow's
+  // useStartItem call). On submit, useStopItem marks the item complete
+  // and the module progress counter increments. This is what makes
+  // the module sidebar show "1/7 completed" and unblock the next item.
+  const [watchItemId, setWatchItemId] = useState<string | null>(null);
+  useEffect(() => {
+    // Don't start tracking if the student has already submitted —
+    // the existing useStartItem would be a no-op and we'd 400 on stop.
+    if (existing || hasSubmitted) return;
+    if (!courseId || !versionId || !itemId || !moduleId || !sectionId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const result: any = await startItem.mutateAsync({
+          params: { path: { courseId, courseVersionId: versionId } },
+          body: { itemId, moduleId, sectionId, cohortId },
+        });
+        if (!cancelled && result?.watchItemId) setWatchItemId(result.watchItemId);
+      } catch (e) {
+        // Non-fatal — the item still gets marked complete on stopItem
+        // because the backend will start a fresh watch item if needed.
+        console.warn('[peer-review] useStartItem failed (non-fatal)', e);
+      }
+    })();
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [courseId, versionId, itemId, moduleId, sectionId, existing?._id]);
 
   const deadline = useMemo(() => {
     if (submissionDeadline) return submissionDeadline;
@@ -255,6 +289,27 @@ export function PeerReviewSubmissionForm({
       };
       setLocalExisting(newSubmission);
       console.log('[peer-review] setLocalExisting with submissionId', newSubmission._id);
+      // Mark the item complete in the user's progress (mirrors the
+      // VIDEO flow's stop-on-end behaviour). This is what flips the
+      // module sidebar counter to "1/7 completed" and lets the
+      // student move to the next item.
+      try {
+        await stopItem.mutateAsync({
+          params: { path: { courseId, courseVersionId: versionId } },
+          body: {
+            itemId,
+            moduleId,
+            sectionId,
+            cohortId,
+            isSkipped: false,
+            seekForwardEnabled: false,
+            watchItemId: watchItemId ?? '',
+          },
+        });
+        console.log('[peer-review] useStopItem success — item marked complete');
+      } catch (e) {
+        console.warn('[peer-review] useStopItem failed (non-fatal)', e);
+      }
       toast.success("Submission saved. You'll need to review 3 of your peers next.");
     } catch (e: any) {
       // Roll back the local flag so the user can retry on failure.
