@@ -19,7 +19,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Reorder } from "motion/react";
+import { Reorder, AnimatePresence, motion } from "motion/react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
@@ -2220,16 +2220,25 @@ function TeacherCourseContent() {
                                         <span className="sr-only">Hide Section</span>
                                       </Button>
 
-                                      {expandedSections[section.sectionId] && (
-                                        <Reorder.Group
-                                          axis="y"
-                                          values={sectionItems[section.sectionId] || []}
-                                          onReorder={(newItemOrder) => {
-                                            //
-                                            pendingOrderItems.current[section.sectionId] = newItemOrder;
-                                            //
-                                          }}
-                                        >
+                                      <AnimatePresence initial={false}>
+                                        {expandedSections[section.sectionId] && (
+                                          <motion.div
+                                            key="items"
+                                            initial={{ height: 0, opacity: 0 }}
+                                            animate={{ height: 'auto', opacity: 1 }}
+                                            exit={{ height: 0, opacity: 0 }}
+                                            transition={{ duration: 0.18, ease: 'easeOut' }}
+                                            style={{ overflow: 'hidden' }}
+                                          >
+                                          <Reorder.Group
+                                            axis="y"
+                                            values={sectionItems[section.sectionId] || []}
+                                            onReorder={(newItemOrder) => {
+                                              //
+                                              pendingOrderItems.current[section.sectionId] = newItemOrder;
+                                              //
+                                            }}
+                                          >
                                           <SidebarMenuSub className="ml-4 space-y-1 pt-1">
                                             {itemsLoading && activeSectionInfo?.sectionId === section.sectionId ? (
                                               <div className="flex items-center justify-center py-4">
@@ -2681,9 +2690,11 @@ function TeacherCourseContent() {
                                               </TooltipProvider>
                                             </div>
 
-                                          </SidebarMenuSub>
-                                        </Reorder.Group>
-                                      )}
+                                           </SidebarMenuSub>
+                                          </Reorder.Group>
+                                          </motion.div>
+                                        )}
+                                      </AnimatePresence>
                                     </div>
                                   </Reorder.Item>
                                 ))}
