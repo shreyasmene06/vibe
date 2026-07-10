@@ -278,9 +278,10 @@ export function PeerReviewSubmissionForm({
   console.log('[peer-review] form mount', {
     storageKey,
     hasLocalCached: !!localExisting,
-    serverQueryIsTruthy: !!submissionQuery.data,
-    serverQueryShape: submissionQuery.data ? Object.keys(submissionQuery.data).slice(0, 5) : null,
-    serverError: typeof submissionQuery.error === 'string' ? submissionQuery.error : (submissionQuery.error as any)?.message ?? null,
+    summaryQueryStatus: summaryQuery.isLoading ? 'loading' : summaryQuery.error ? `error:${(summaryQuery.error as any)?.message ?? summaryQuery.error}` : 'ready',
+    summaryDataCount: summaryQuery.data?.length ?? 0,
+    summaryForThisMatch: summaryForThis ? { submitted: summaryForThis.submitted, submittedAt: summaryForThis.submittedAt } : null,
+    serverExistingIsTruthy: !!serverExisting,
     finalExistingIsTruthy: !!existing,
   });
   // Debug: surface ALL localStorage entries with the peerReview prefix
