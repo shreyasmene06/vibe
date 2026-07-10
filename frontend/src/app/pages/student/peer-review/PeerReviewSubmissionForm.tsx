@@ -163,6 +163,12 @@ export function PeerReviewSubmissionForm({
   // undefined and the form flips back to editable on revisit, which
   // is the bug the user reported. localStorage is reliable, the GET
   // is not, so we trust localStorage.
+  //
+  // Backup strategy: if the per-assessment key is missing (e.g.
+  // user submitted in an earlier session before this fix landed),
+  // we ALSO scan the master list under 'peerReviewSubmissions:all'
+  // for a matching submission. This makes the cache robust against
+  // missing per-key entries.
   useEffect(() => {
     if (typeof window === 'undefined') return;
     try {
@@ -174,13 +180,29 @@ export function PeerReviewSubmissionForm({
       }
       staleKeys.forEach(k => window.localStorage.removeItem(k));
     } catch {}
-    if (!storageKey) return;
+    if (!storageKey || !assessmentId) return;
     try {
+      // First try the per-assessment key.
       const cached = window.localStorage.getItem(storageKey);
       if (cached) {
         const parsed = JSON.parse(cached);
         setLocalExisting(parsed);
-        console.log('[peer-review] hydrated from localStorage for', storageKey);
+        console.log('[peer-review] hydrated from per-key cache', storageKey);
+        return;
+      }
+      // Fall back to master list — find a submission for this assessmentId.
+      const masterRaw = window.localStorage.getItem('peerReviewSubmissions:all');
+      if (masterRaw) {
+        const master = JSON.parse(masterRaw);
+        const match = (master || []).find((m: any) =>
+          String(m?.assessmentId) === assessmentId
+        );
+        if (match) {
+          setLocalExisting(match);
+          // Also repopulate the per-key cache for next time.
+          try { window.localStorage.setItem(storageKey, JSON.stringify(match)); } catch {}
+          console.log('[peer-review] hydrated from master list for', storageKey);
+        }
       }
     } catch (e) {
       console.warn('[peer-review] localStorage parse failed', e);
@@ -354,6 +376,18 @@ export function PeerReviewSubmissionForm({
       if (storageKey && typeof window !== 'undefined') {
         try {
           window.localStorage.setItem(storageKey, JSON.stringify(newSubmission));
+          // Also append to the master list so we have a redundant
+          // backup under 'peerReviewSubmissions:all'. The form looks
+          // up by assessmentId there if the per-key cache is missing.
+          try {
+            const raw = window.localStorage.getItem('peerReviewSubmissions:all');
+            const list: any[] = raw ? JSON.parse(raw) : [];
+            const filtered = (list || []).filter((m: any) =>
+              String(m?.assessmentId) !== assessmentId
+            );
+            filtered.push(newSubmission);
+            window.localStorage.setItem('peerReviewSubmissions:all', JSON.stringify(filtered));
+          } catch {}
           console.log('[peer-review] persisted submission to localStorage', storageKey);
         } catch (e) {
           console.warn('[peer-review] localStorage write failed', e);
