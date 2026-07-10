@@ -183,10 +183,45 @@ export class PeerReviewAssessmentService extends BaseService {
       //    item is created in the peer_review_assessments collection but
       //    never surfaces in the section, so the UI shows no new item
       //    after a hard refresh.
-      const itemsGroup = await this.itemRepo.findItemsGroupBySectionId(
+      //
+      //    Legacy / auto-seeded sections may not have an itemsGroup at
+      //    all (the create flow was added later than the seed script).
+      //    For those we create the itemsGroup here and stamp the
+      //    section's itemsGroupId so subsequent GETs on the items
+      //    endpoint can find it.
+      let itemsGroup = await this.itemRepo.findItemsGroupBySectionId(
         body.sectionId,
         session,
       );
+      if (!itemsGroup) {
+        itemsGroup = await this.itemRepo.createItemsGroup(
+          { sectionId: new ObjectId(body.sectionId) } as any,
+          session,
+        );
+        // Stamp section.itemsGroupId on the version so the items GET
+        // endpoint can resolve it on subsequent reads.
+        const version = (await this.courseRepo.readVersion(
+          body.courseVersionId,
+          session,
+        )) as any;
+        if (version) {
+          const mod = (version.modules ?? []).find(
+            (m: any) => String(m.moduleId) === body.moduleId,
+          );
+          const sec = (mod?.sections ?? []).find(
+            (s: any) => String(s.sectionId) === body.sectionId,
+          );
+          if (sec) {
+            sec.itemsGroupId = itemsGroup._id;
+            sec.updatedAt = new Date();
+            await this.courseRepo.updateVersion(
+              body.courseVersionId,
+              version,
+              session,
+            );
+          }
+        }
+      }
       if (itemsGroup) {
         // Compute a valid LexoRank order for the new item. If the group is
         // empty, start at the middle; otherwise append after the last item.
