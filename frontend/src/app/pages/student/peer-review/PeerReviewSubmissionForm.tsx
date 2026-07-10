@@ -112,8 +112,33 @@ export function PeerReviewSubmissionForm({
   // (before the refetch lands) or when the server refetch comes back.
   // This bypasses react-query's openapi-fetch cache-key mystery and
   // guarantees the form flips to the read-only view on first click.
-  const [localExisting, setLocalExisting] = useState<any | null>(null);
+  // PERSISTED TO LOCALSTORAGE so a hard refresh stays read-only even
+  // if the GET fails (e.g. openapi-fetch token-refresh hiccup).
+  const storageKey = `peerReviewSubmission:${assessment?._id || assessment?.assessmentId}`;
+  const [localExisting, setLocalExisting] = useState<any | null>(() => {
+    if (typeof window === 'undefined') return null;
+    try {
+      const cached = window.localStorage.getItem(storageKey);
+      return cached ? JSON.parse(cached) : null;
+    } catch { return null; }
+  });
   const existing = localExisting ?? serverExisting;
+  // Whenever serverExisting lands, mirror it into localStorage so a
+  // hard refresh shows the read-only view even if the GET fails
+  // next time. Also write when we set localExisting ourselves.
+  useEffect(() => {
+    if (existing && typeof window !== 'undefined') {
+      try { window.localStorage.setItem(storageKey, JSON.stringify(existing)); } catch {}
+    }
+  }, [existing, storageKey]);
+  console.log('[peer-review] form mount', {
+    storageKey,
+    hasLocalCached: !!localExisting,
+    serverExistingIsTruthy: !!serverExisting,
+    serverExistingShape: serverExisting ? Object.keys(serverExisting).slice(0, 5) : null,
+    serverError: submissionQuery.error,
+    finalExistingIsTruthy: !!existing,
+  });
   // Local flag — flips true on the first submit click. Combined with
   // the read-only "if (existing) return" branch, this prevents the
   // user from spam-clicking Submit before the refetch lands.
