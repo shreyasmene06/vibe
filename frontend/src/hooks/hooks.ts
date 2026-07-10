@@ -1496,6 +1496,39 @@ export function useSubmitPeerReview(): {
   };
 }
 
+// GET /students/me/submissions/summary?courseId=...&courseVersionId=...&cohortId=...
+// Returns a flat list of { assessmentId, submitted, submittedAt } for every
+// peer-review assessment in the given course/version/cohort. The flat shape
+// avoids openapi-fetch's "Deeply-nested arrays/objects" deserialization
+// failure that the per-item /submissions?assessmentId=... endpoint hits.
+export function useMyPeerReviewSubmissionSummary(
+  courseId: string | undefined,
+  courseVersionId: string | undefined,
+  cohortId: string | undefined,
+): {
+  data: Array<{ assessmentId: string; submitted: boolean; submittedAt?: string }>,
+  isLoading: boolean,
+  error: string | null,
+  refetch: () => void,
+} {
+  const result = (api as any).useQuery(
+    'get',
+    '/students/me/submissions/summary',
+    (courseId && courseVersionId) ? {
+      params: {
+        query: { courseId, courseVersionId, cohortId },
+      },
+    } : ({} as any),
+    { enabled: !!(courseId && courseVersionId), retry: false },
+  );
+  return {
+    data: (result.data ?? []) as Array<{ assessmentId: string; submitted: boolean; submittedAt?: string }>,
+    isLoading: result.isLoading,
+    error: result.error ? (result.error.message || 'Load failed') : null,
+    refetch: result.refetch,
+  };
+}
+
 // GET /peer-review-assessments/by-item/{itemId} — used by the student
 // course page to find which peer-review assessment a given section item
 // is, so it can render the submission form with the right rubric,

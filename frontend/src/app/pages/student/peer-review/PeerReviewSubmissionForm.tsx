@@ -14,6 +14,7 @@ import {
   useCheckPeerReviewLink,
   useStartItem,
   useStopItem,
+  useMyPeerReviewSubmissionSummary,
 } from "@/hooks/hooks";
 
 /**
@@ -132,6 +133,20 @@ export function PeerReviewSubmissionForm({
   // can't handle nested arrays in the response. localStorage is the
   // sole source of truth for "did this student submit?".
   void submissionQuery;
+  // ALSO: bulk submission-summary endpoint — returns a flat list of
+  // {assessmentId, submitted, submittedAt} for every peer-review
+  // assessment in this course. We use it as the primary source of
+  // truth: a peer-review item is "submitted" iff this hook reports
+  // submitted=true for its assessmentId. This is the canonical
+  // ViBe-style per-user-per-course progress lookup pattern, just
+  // adapted for peer-review. Because the response is flat (no
+  // nested arrays), openapi-fetch can deserialize it without
+  // crashing.
+  const summaryQuery = useMyPeerReviewSubmissionSummary(
+    courseId,
+    versionId,
+    cohortId,
+  );
   // Local override of the submission doc — set when our POST returns
   // (before the refetch lands) or when the server refetch comes back.
   // This bypasses react-query's openapi-fetch cache-key mystery and
@@ -214,7 +229,34 @@ export function PeerReviewSubmissionForm({
     // intentionally only react to storageKey changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [storageKey]);
-  const existing = localExisting;
+  // summaryForThis: which entry in the bulk submission summary
+  // corresponds to THIS assessment. Drives the read-only state.
+  const summaryForThis = useMemo(() => {
+    if (!summaryQuery.data || !assessmentId) return null;
+    return summaryQuery.data.find(
+      (m) => String(m.assessmentId) === assessmentId,
+    );
+  }, [summaryQuery.data, assessmentId]);
+  const existing = useMemo(() => {
+    // Priority: server summary (canonical truth, flat response) >
+    // localStorage optimistic update (just-submitted) > nothing.
+    if (summaryForThis?.submitted) {
+      return {
+        _id: undefined,
+        assessmentId,
+        studentId: '',
+        notes: '',
+        links: [],
+        submittedAt: summaryForThis.submittedAt,
+        isLate: false,
+        reviewsCompleted: 0,
+        reviewsTotal: 3,
+        reviewAssignmentIds: [],
+        teacherOverridden: false,
+      };
+    }
+    return localExisting;
+  }, [summaryForThis, localExisting, assessmentId]);
   // Belt-and-braces: keep the per-key cache in sync as a defensive
   // measure, even though onSave writes synchronously. If anything
   // else (a refetch landing, etc.) updates localExisting, this
@@ -420,6 +462,9 @@ export function PeerReviewSubmissionForm({
       } catch (e) {
         console.warn('[peer-review] useStopItem failed (non-fatal)', e);
       }
+      // Refresh the bulk summary so the next item the student
+      // navigates to sees the up-to-date submitted map.
+      try { summaryQuery.refetch(); } catch {}
       toast.success("Submission saved. You'll need to review 3 of your peers next.");
     } catch (e: any) {
       // Roll back the local flag so the user can retry on failure.

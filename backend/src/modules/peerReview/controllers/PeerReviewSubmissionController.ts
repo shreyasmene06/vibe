@@ -98,6 +98,37 @@ export class PeerReviewSubmissionController {
   }
 
   /**
+   * GET /students/me/submissions/summary?courseId=...&courseVersionId=...&cohortId=...
+   *
+   * Returns a FLAT list of (assessmentId, submitted) pairs for every
+   * peer-review assessment in the given course/version/cohort. No
+   * nested arrays, no links field — just primitive fields so
+   * openapi-fetch's querySerializer can deserialize without crashing.
+   *
+   * Used by the sidebar to show "Submitted" / "Not submitted" badges
+   * on every peer-review item in one round-trip.
+   */
+  @Get('/students/me/submissions/summary')
+  @HttpCode(200)
+  @Authorized()
+  async getMySubmissionSummary(
+    @CurrentUser({ required: true }) user: IUser,
+    @QueryParam('courseId') courseId?: string,
+    @QueryParam('courseVersionId') courseVersionId?: string,
+    @QueryParam('cohortId') cohortId?: string,
+  ): Promise<Array<{ assessmentId: string; submitted: boolean; submittedAt?: string }>> {
+    if (!courseId || !courseVersionId) {
+      throw new BadRequestError('courseId and courseVersionId are required.');
+    }
+    return this.service.getSubmissionSummary(
+      user,
+      courseId,
+      courseVersionId,
+      cohortId,
+    );
+  }
+
+  /**
    * GET /peer-review-links/check?url=...
    *
    * Audit-improvement tier-2.a: live accessibility badge. Lets the

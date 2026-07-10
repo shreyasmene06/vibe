@@ -170,6 +170,54 @@ export class PeerReviewSubmissionService extends BaseService {
   }
 
   /**
+   * Flat list of {assessmentId, submitted, submittedAt} for every
+   * assessment in the given course/version/cohort. Used by the sidebar
+   * so badges can show submitted/not-submitted without per-item GETs.
+   */
+  async getSubmissionSummary(
+    student: IUser,
+    courseId: string,
+    courseVersionId: string,
+    cohortId?: string,
+  ): Promise<Array<{ assessmentId: string; submitted: boolean; submittedAt?: string }>> {
+    // 1. Get every peer-review assessment in this course/version.
+    const assessments = await this.assessmentRepo.findByCourseVersion(
+      courseId,
+      courseVersionId,
+      cohortId,
+    );
+    if (!assessments || assessments.length === 0) return [];
+
+    // 2. Get this student's submissions for any of those assessments
+    //    in a single bulk query.
+    const assessmentIds = assessments
+      .map((a: any) => a._id)
+      .filter(Boolean)
+      .map((id: any) => (typeof id === 'string' ? id : String(id)));
+    const submissions = await this.submissionRepo.findByStudentAndAssessmentIds(
+      student._id!.toString(),
+      assessmentIds,
+    );
+
+    // 3. Build the flat summary — exactly one entry per assessment.
+    const submittedMap = new Map<string, { submittedAt?: Date }>();
+    for (const s of submissions || []) {
+      const aid = (s as any).assessmentId;
+      const aidStr = typeof aid === 'string' ? aid : String(aid);
+      submittedMap.set(aidStr, { submittedAt: (s as any).submittedAt });
+    }
+    return assessments.map((a: any) => {
+      const aidStr = typeof a._id === 'string' ? a._id : String(a._id);
+      const sub = submittedMap.get(aidStr);
+      return {
+        assessmentId: aidStr,
+        submitted: !!sub,
+        submittedAt: sub?.submittedAt ? new Date(sub.submittedAt).toISOString() : undefined,
+      };
+    });
+  }
+
+  /**
    * Count of all submissions to an assessment. Used by the Phase 4
    * AssignmentRunner cron to know how many submitters are in the pool.
    */

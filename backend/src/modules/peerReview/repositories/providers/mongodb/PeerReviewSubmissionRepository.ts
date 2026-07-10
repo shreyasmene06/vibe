@@ -73,6 +73,31 @@ export class PeerReviewSubmissionRepository {
     return docs as IPeerReviewSubmission[];
   }
 
+  /**
+   * Bulk lookup: this student's submissions across many assessments.
+   * Used by the submission-summary endpoint.
+   */
+  async findByStudentAndAssessmentIds(
+    studentId: string,
+    assessmentIds: string[],
+  ): Promise<IPeerReviewSubmission[]> {
+    await this.init();
+    if (!assessmentIds || assessmentIds.length === 0) return [];
+    // Coerce each id to ObjectId where possible.
+    const orClauses = assessmentIds.flatMap((id) => {
+      if (typeof id !== 'string') return [{ assessmentId: id as any }];
+      if (ObjectId.isValid(id)) return [
+        { assessmentId: new ObjectId(id) as any },
+        { assessmentId: id as any }, // also try as raw string in case it was stored that way
+      ];
+      return [{ assessmentId: id as any }];
+    });
+    const docs = await this.collection
+      .find({ studentId: studentId as any, $or: orClauses })
+      .toArray();
+    return docs as IPeerReviewSubmission[];
+  }
+
   async findByStudent(
     studentId: string,
   ): Promise<IPeerReviewSubmission[]> {

@@ -58,6 +58,28 @@ export class PeerReviewAssessmentRepository {
     return doc as IPeerReviewAssessment;
   }
 
+  /**
+   * Bulk lookup: every assessment in a course/version (optionally
+   * narrowed to one cohort). Used by the submission-summary endpoint.
+   */
+  async findByCourseVersion(
+    courseId: string,
+    courseVersionId: string,
+    cohortId?: string,
+  ): Promise<IPeerReviewAssessment[]> {
+    await this.init();
+    const filter: any = {
+      courseId: typeof courseId === 'string' ? new ObjectId(courseId) as any : courseId,
+      courseVersionId: typeof courseVersionId === 'string' ? new ObjectId(courseVersionId) as any : courseVersionId,
+      isDeleted: { $ne: true },
+    };
+    if (cohortId) {
+      filter.cohortId = typeof cohortId === 'string' ? new ObjectId(cohortId) as any : cohortId;
+    }
+    const docs = await this.collection.find(filter).toArray();
+    return docs as IPeerReviewAssessment[];
+  }
+
   async findActiveByCourse(
     courseId: string,
   ): Promise<IPeerReviewAssessment[]> {
