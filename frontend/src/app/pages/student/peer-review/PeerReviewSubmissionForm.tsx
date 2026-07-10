@@ -107,6 +107,9 @@ export function PeerReviewSubmissionForm({
   courseId,
   versionId,
   itemId,
+  moduleId,
+  sectionId,
+  cohortId,
   assessment,
   submissionDeadline,
 }: Props) {
@@ -127,7 +130,14 @@ export function PeerReviewSubmissionForm({
   // usePeerReviewAssessmentByItemId. We must therefore hydrate
   // localStorage in a useEffect keyed on the assessmentId, NOT in
   // useState's initializer (which would run with assessmentId undefined).
-  const assessmentId = assessment?._id || assessment?.assessmentId;
+  //
+  // ALSO: assessment._id is a Mongo ObjectId object (with a custom
+  // toString), so the template literal interpolation renders it as
+  // "[object Object]". Coerce to a plain string here.
+  const rawAssessmentId = assessment?._id || assessment?.assessmentId;
+  const assessmentId: string | null = rawAssessmentId
+    ? (typeof rawAssessmentId === 'string' ? rawAssessmentId : String(rawAssessmentId))
+    : null;
   const storageKey = assessmentId ? `peerReviewSubmission:${assessmentId}` : null;
   const [localExisting, setLocalExisting] = useState<any | null>(null);
   // Hydrate from localStorage whenever the assessmentId becomes known
