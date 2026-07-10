@@ -37,7 +37,17 @@ export class PeerReviewAssessmentRepository {
 
   async findById(id: string): Promise<IPeerReviewAssessment | null> {
     await this.init();
-    const doc = await this.collection.findOne({ _id: id as any });
+    // _id is stored as ObjectId; coerce the incoming string so the
+    // query matches (matching the pattern used by findByItemId /
+    // findByCourseVersion).
+    const filter = (() => {
+      try {
+        return { _id: new ObjectId(id) as any };
+      } catch (_) {
+        return { _id: id as any };
+      }
+    })();
+    const doc = await this.collection.findOne(filter);
     if (!doc) return null;
     return doc as IPeerReviewAssessment;
   }
@@ -84,8 +94,16 @@ export class PeerReviewAssessmentRepository {
     courseId: string,
   ): Promise<IPeerReviewAssessment[]> {
     await this.init();
+    // courseId is stored as ObjectId; coerce to match query intent.
+    const cId: any = (() => {
+      try {
+        return new ObjectId(courseId);
+      } catch (_) {
+        return courseId;
+      }
+    })();
     const docs = await this.collection
-      .find({ courseId: courseId as any, isDeleted: { $ne: true } })
+      .find({ courseId: cId, isDeleted: { $ne: true } })
       .toArray();
     return docs as IPeerReviewAssessment[];
   }
@@ -158,8 +176,15 @@ export class PeerReviewAssessmentRepository {
     session?: ClientSession,
   ): Promise<void> {
     await this.init();
+    const filter = (() => {
+      try {
+        return { _id: new ObjectId(id) as any };
+      } catch (_) {
+        return { _id: id as any };
+      }
+    })();
     await this.collection.updateOne(
-      { _id: id as any },
+      filter,
       { $set: { assignmentRunAt: when, updatedAt: new Date() } },
       { session },
     );
@@ -171,8 +196,15 @@ export class PeerReviewAssessmentRepository {
     session?: ClientSession,
   ): Promise<void> {
     await this.init();
+    const filter = (() => {
+      try {
+        return { _id: new ObjectId(id) as any };
+      } catch (_) {
+        return { _id: id as any };
+      }
+    })();
     await this.collection.updateOne(
-      { _id: id as any },
+      filter,
       { $set: { closedAt: when, updatedAt: new Date() } },
       { session },
     );

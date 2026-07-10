@@ -120,6 +120,30 @@ export class PeerReviewNotificationService {
   }
 
   /**
+   * Goes to every student who already submitted for an assessment when
+   * the submission window closes (either by hitting the natural
+   * submissionDeadline or because a teacher clicked "Close now").
+   * Tells them peer-review assignments are coming due.
+   */
+  async notifySubmissionsClosed(args: {
+    userId: string;
+    assessmentTitle: string;
+    assessmentId: string;
+    courseId?: string;
+    reviewDueAt: Date;
+    reviewCount: number;
+  }): Promise<string> {
+    return this.create(
+      args.userId,
+      'PEER_REVIEW_SUBMISSIONS_CLOSED',
+      'Submissions closed — your peer reviews are ready',
+      `Submissions for "${args.assessmentTitle}" are now closed. You have ${args.reviewCount} peer review${args.reviewCount > 1 ? 's' : ''} to complete by ${args.reviewDueAt.toLocaleString()}.`,
+      { assessmentId: args.assessmentId, dueAt: args.reviewDueAt, reviewCount: args.reviewCount },
+      args.courseId,
+    );
+  }
+
+  /**
    * Submitter notification when a teacher manually overrides one of
    * the reviews on their submission. Required by Phase 5.2.2 audit
    * transparency: the submitter must be told their grade was

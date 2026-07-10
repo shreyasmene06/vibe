@@ -10,7 +10,14 @@ import { BaseService } from '#root/shared/classes/BaseService.js';
 import { MongoDatabase } from '#shared/database/providers/mongo/MongoDatabase.js';
 import { GLOBAL_TYPES } from '#root/types.js';
 import { PEERREVIEW_TYPES } from '../types.js';
-import { PeerReviewAssessmentRepository } from '../repositories/providers/mongodb/PeerReviewAssessmentRepository.js';
+import {
+  PeerReviewAssessmentRepository,
+} from '../repositories/providers/mongodb/PeerReviewAssessmentRepository.js';
+import {
+  PeerReviewSubmissionRepository,
+} from '../repositories/providers/mongodb/PeerReviewSubmissionRepository.js';
+import { PeerReviewAssignmentService } from './PeerReviewAssignmentService.js';
+import { PeerReviewNotificationService } from './PeerReviewNotificationService.js';
 import { IItemRepository, ICourseRepository } from '#root/shared/index.js';
 import { USERS_TYPES } from '#root/modules/users/types.js';
 import { PeerReviewAssessmentItem } from '#courses/classes/transformers/Item.js';
@@ -47,6 +54,12 @@ export class PeerReviewAssessmentService extends BaseService {
   constructor(
     @inject(PEERREVIEW_TYPES.PeerReviewAssessmentRepo)
     private readonly assessmentRepo: PeerReviewAssessmentRepository,
+    @inject(PEERREVIEW_TYPES.PeerReviewSubmissionRepo)
+    private readonly submissionRepo: PeerReviewSubmissionRepository,
+    @inject(PEERREVIEW_TYPES.PeerReviewAssignmentService)
+    private readonly assignmentService: PeerReviewAssignmentService,
+    @inject(PEERREVIEW_TYPES.PeerReviewNotificationService)
+    private readonly notifier: PeerReviewNotificationService,
     @inject(GLOBAL_TYPES.CourseRepo)
     private readonly courseRepo: ICourseRepository,
     @inject(USERS_TYPES.ItemRepo)
@@ -364,20 +377,68 @@ export class PeerReviewAssessmentService extends BaseService {
   }
 
   /**
-   * Manually close an assessment (e.g. teacher wants to finalize scores
-   * before the review deadline has elapsed). Phase 5's
-   * FinalizationRunner cron also calls this on its own timer.
+   * Manually close an assessment's submission window. After this
+   * call, students can no longer submit; if no reviewer assignments
+   * have been generated yet, the assignment algorithm is invoked
+   * inline so the close-then-notify latency is bounded by request
+   * time, not cron tick. A "submissions closed" notification goes to
+   * every submitter who already submitted (so they know peer-review
+   * work is coming), plus the existing reviewer-assignment
+   * notifications fire from the assignment pass.
    *
-   * For Phase 2 this is a no-op that stamps `closedAt`; the real
-   * finalization (compute finalScores, fire notifications) is wired up
-   * in Phase 5.
+   * Idempotent w.r.t. already-closed.
    */
   async close(teacher: IUser, assessmentId: string): Promise<void> {
     const a = await this.get(assessmentId);
     if (a.closedAt) {
       throw new ForbiddenError('Assessment is already closed.');
     }
-    await this.assessmentRepo.setClosed(assessmentId, new Date());
+
+    // 1. Stamp closedAt FIRST so that even if a subsequent step
+    //    throws, the close is durable and not silently re-tried.
+    const closedAt = new Date();
+    await this.assessmentRepo.setClosed(assessmentId, closedAt);
+
+    // 2. Fire the assignment pass inline if it hasn't run yet. The
+    //    AssignmentService.runForAssessment() is idempotent (returns
+    //    already_ran when assignmentRunAt is set) so this is safe to
+    //    call from both the cron path and this manual-close path.
+    try {
+      await this.assignmentService.runForAssessment(assessmentId);
+    } catch (err) {
+      // Don't fail the close if assignment fails (e.g. only one
+      // submission so far) — the cron will retry on the next tick.
+      console.warn(
+        `[peer-review:close] runForAssessment failed for ${assessmentId}:`,
+        err,
+      );
+    }
+
+    // 3. Tell every submitter the window has closed and their peer
+    //    reviews are due. Read submissions fresh (not from the
+    //    possibly-stale `a` shape) so we have accurate studentIds.
+    const submissions = await this.submissionRepo.findByAssessment(assessmentId);
+    const reviewsPerSubmission =
+      (a as any).config?.reviewsPerSubmission ?? 2;
+    for (const s of submissions as any[]) {
+      try {
+        const studentId = (s.studentId as any)?.toString?.() ?? s.studentId;
+        if (!studentId) continue;
+        await this.notifier.notifySubmissionsClosed({
+          userId: studentId,
+          assessmentTitle: (a as any).title ?? 'Peer-review assessment',
+          assessmentId,
+          courseId: (a as any).courseId?.toString?.(),
+          reviewDueAt: (a as any).reviewDeadline,
+          reviewCount: reviewsPerSubmission,
+        });
+      } catch (err) {
+        console.warn(
+          `[peer-review:close] notify submitter failed for submission ${(s as any)._id}:`,
+          err,
+        );
+      }
+    }
   }
 
   // ---- private helpers ----
