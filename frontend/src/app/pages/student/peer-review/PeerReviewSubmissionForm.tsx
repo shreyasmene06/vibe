@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
+import { useCourseStore } from "@/store/course-store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -107,14 +108,23 @@ export function PeerReviewSubmissionForm({
   courseId,
   versionId,
   itemId,
-  moduleId,
-  sectionId,
-  cohortId,
+  moduleId: moduleIdProp,
+  sectionId: sectionIdProp,
+  cohortId: cohortIdProp,
   assessment,
   submissionDeadline,
 }: Props) {
   const startItem = useStartItem();
   const stopItem = useStopItem();
+  // The course-store is the canonical source of moduleId/sectionId/cohortId
+  // — it's set by course-page when the student navigates between items,
+  // same pattern the VIDEO flow uses for useStartItem/useStopItem. The
+  // props are passed in too but the items endpoint doesn't return these
+  // fields on each item, so the store is the fallback that always works.
+  const { currentCourse } = useCourseStore();
+  const moduleId = moduleIdProp || (currentCourse?.moduleId ?? '');
+  const sectionId = sectionIdProp || (currentCourse?.sectionId ?? '');
+  const cohortId = cohortIdProp || (currentCourse?.cohortId ?? '');
   const submitHook = useSubmitPeerReview();
   const submissionQuery = useMySubmission(assessment?._id || assessment?.assessmentId);
   const serverExisting = submissionQuery.data;
@@ -142,8 +152,21 @@ export function PeerReviewSubmissionForm({
   const [localExisting, setLocalExisting] = useState<any | null>(null);
   // Hydrate from localStorage whenever the assessmentId becomes known
   // (initial mount, hard refresh, or navigating between assessments).
+  // Also clear any stale "[object Object]" keys left over from the
+  // version before we coerced assessmentId to a string — those keys
+  // would otherwise shadow per-assessment keys with cross-item bleed.
   useEffect(() => {
-    if (typeof window === 'undefined' || !storageKey) return;
+    if (typeof window === 'undefined') return;
+    try {
+      // Sweep stale broken keys from older versions of this form.
+      const staleKeys: string[] = [];
+      for (let i = 0; i < window.localStorage.length; i++) {
+        const k = window.localStorage.key(i);
+        if (k && k.startsWith('peerReviewSubmission:[')) staleKeys.push(k);
+      }
+      staleKeys.forEach(k => window.localStorage.removeItem(k));
+    } catch {}
+    if (!storageKey) return;
     try {
       const cached = window.localStorage.getItem(storageKey);
       if (cached) setLocalExisting(JSON.parse(cached));
