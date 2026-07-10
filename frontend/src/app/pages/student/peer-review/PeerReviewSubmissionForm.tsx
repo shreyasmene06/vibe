@@ -265,7 +265,22 @@ export function PeerReviewSubmissionForm({
   // Server is the canonical source per ViBe's progress-tracking
   // pattern; localStorage is just a fast-path while waiting for the
   // next refetch to land.
-  const existing = serverExisting ?? localExisting;
+  //
+  // CRITICAL: only trust the localStorage cache when the assessment
+  // data has stabilized. The course-page passes `assessment` from
+  // usePeerReviewAssessmentByItemId, which keeps the previous item's
+  // data while the next item's fetch is in flight. If we read
+  // localStorage during that window, we'd use the previous item's
+  // key and could surface the wrong item's submission. Gate on
+  // the assessmentId being a real string (not undefined) AND on
+  // the assessment being loaded for THIS item (peerReviewAssessmentHook
+  // has data with the matching id).
+  // Simpler: only use localStorage if the assessment prop is non-null
+  // AND its _id matches the assessmentId we're keying on. course-page
+  // ensures this by setting `assessment` to the freshly-fetched doc.
+  const assessmentMatchesItemId = !!(assessment && assessment._id && assessmentId && String(assessment._id) === assessmentId);
+  const localExistingForCurrent = (assessmentMatchesItemId) ? localExisting : null;
+  const existing = serverExisting ?? localExistingForCurrent;
   // Belt-and-braces: keep the per-key cache in sync as a defensive
   // measure, even though onSave writes synchronously. If anything
   // else (a refetch landing, etc.) updates localExisting, this
