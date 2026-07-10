@@ -114,20 +114,32 @@ export function PeerReviewSubmissionForm({
   // guarantees the form flips to the read-only view on first click.
   // PERSISTED TO LOCALSTORAGE so a hard refresh stays read-only even
   // if the GET fails (e.g. openapi-fetch token-refresh hiccup).
-  const storageKey = `peerReviewSubmission:${assessment?._id || assessment?.assessmentId}`;
-  const [localExisting, setLocalExisting] = useState<any | null>(() => {
-    if (typeof window === 'undefined') return null;
+  //
+  // IMPORTANT: the assessment prop is async — it's null on the first
+  // render of a hard refresh and only arrives milliseconds later via
+  // usePeerReviewAssessmentByItemId. We must therefore hydrate
+  // localStorage in a useEffect keyed on the assessmentId, NOT in
+  // useState's initializer (which would run with assessmentId undefined).
+  const assessmentId = assessment?._id || assessment?.assessmentId;
+  const storageKey = assessmentId ? `peerReviewSubmission:${assessmentId}` : null;
+  const [localExisting, setLocalExisting] = useState<any | null>(null);
+  // Hydrate from localStorage whenever the assessmentId becomes known
+  // (initial mount, hard refresh, or navigating between assessments).
+  useEffect(() => {
+    if (typeof window === 'undefined' || !storageKey) return;
     try {
       const cached = window.localStorage.getItem(storageKey);
-      return cached ? JSON.parse(cached) : null;
-    } catch { return null; }
-  });
+      if (cached) setLocalExisting(JSON.parse(cached));
+    } catch {}
+    // intentionally only react to storageKey changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [storageKey]);
   const existing = localExisting ?? serverExisting;
   // Whenever serverExisting lands, mirror it into localStorage so a
   // hard refresh shows the read-only view even if the GET fails
   // next time. Also write when we set localExisting ourselves.
   useEffect(() => {
-    if (existing && typeof window !== 'undefined') {
+    if (existing && typeof window !== 'undefined' && storageKey) {
       try { window.localStorage.setItem(storageKey, JSON.stringify(existing)); } catch {}
     }
   }, [existing, storageKey]);
