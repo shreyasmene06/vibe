@@ -1,4 +1,4 @@
-import { Expose, Type } from 'class-transformer';
+import { Exclude, Expose, Type } from 'class-transformer';
 import {
   IsArray,
   IsBoolean,
@@ -271,6 +271,14 @@ export class UpdatePeerReviewAssessmentBody {
  * (controllers strip them via the authorize path).
  */
 export class PeerReviewAssessmentResponse {
+  // @Exclude stops class-transformer from copying Mongo's raw `_id`
+  // (a `{buffer:{data:[...]}}` BSON ObjectId shape) onto the response.
+  // Without it, plainToClass passes through every property — including
+  // the un-transformed `_id` — and the frontend's `assessment._id`
+  // falls into the same `[object Object]` trap as before.
+  @Exclude()
+  _id?: unknown;
+
   @Expose()
   assessmentId!: string;
 

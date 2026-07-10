@@ -127,7 +127,49 @@ export function PeerReviewSubmissionForm({
   const sectionId = sectionIdProp || (currentCourse?.sectionId ?? '');
   const cohortId = cohortIdProp || (currentCourse?.cohortId ?? '');
   const submitHook = useSubmitPeerReview();
-  const submissionQuery = useMySubmission(assessment?._id || assessment?.assessmentId);
+  // ALSO: assessment._id arrives over the wire as either a hex
+  // string OR a `{buffer:{data:[...]}}` shape (Mongo BSON's JSON
+  // representation of an ObjectId), depending on which backend
+  // endpoint returned it and whether class-transformer coerced it.
+  // `String()` on the POJO shape produces '[object Object]' — the
+  // root cause of the cross-item "Submitted on time" bleed, because
+  // every item's id then stringified to the same key, so the per-item
+  // localStorage cache and the summary-endpoint lookup both collided.
+  // Mongoose-shaped `_id` instances with a real `toHexString()` are
+  // handled by the same fallback path.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const toIdString = (v: any): string | null => {
+    if (v == null) return null;
+    if (typeof v === 'string') return v;
+    if (typeof v.toHexString === 'function') {
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return (v as any).toHexString();
+      } catch {
+        // fall through to the generic toString path on the next
+        // branch; intentionally swallow the error here.
+        const _ignored = true;
+        void _ignored;
+      }
+    }
+    if (v && typeof v === 'object') {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const buf: any = v;
+      if (buf.buffer && Array.isArray(buf.buffer.data)) {
+        return buf.buffer.data
+          .map((b: number) => b.toString(16).padStart(2, '0'))
+          .join('');
+      }
+      if (typeof v.toString === 'function') {
+        const s = v.toString();
+        if (s && s !== '[object Object]') return s;
+      }
+    }
+    return null;
+  };
+  const rawAssessmentId = assessment?._id || assessment?.assessmentId;
+  const assessmentId: string | null = toIdString(rawAssessmentId);
+  const submissionQuery = useMySubmission(assessmentId || undefined);
   // Server fetch is run for diagnostic logging only — we ignore its
   // result for state purposes because openapi-fetch's querySerializer
   // can't handle nested arrays in the response. localStorage is the
@@ -160,13 +202,10 @@ export function PeerReviewSubmissionForm({
   // localStorage in a useEffect keyed on the assessmentId, NOT in
   // useState's initializer (which would run with assessmentId undefined).
   //
-  // ALSO: assessment._id is a Mongo ObjectId object (with a custom
-  // toString), so the template literal interpolation renders it as
-  // "[object Object]". Coerce to a plain string here.
-  const rawAssessmentId = assessment?._id || assessment?.assessmentId;
-  const assessmentId: string | null = rawAssessmentId
-    ? (typeof rawAssessmentId === 'string' ? rawAssessmentId : String(rawAssessmentId))
-    : null;
+  // toIdString() and assessmentId are defined at the top of the
+  // component (just below submitHook) so the useMySubmission hook
+  // call above can use the coerced id too. The storage key for
+  // per-item localStorage is keyed off the same coerced value.
   const storageKey = assessmentId ? `peerReviewSubmission:${assessmentId}` : null;
   const [localExisting, setLocalExisting] = useState<any | null>(null);
   // Hydrate from localStorage whenever the assessmentId becomes known
@@ -210,16 +249,38 @@ export function PeerReviewSubmissionForm({
         return;
       }
       // Fall back to master list — find a submission for this assessmentId.
+      // Use toIdString on both sides so legacy entries whose
+      // assessmentId is still a `{buffer:{data:[...]}}` POJO (from
+      // before this fix landed) compare correctly.
       const masterRaw = window.localStorage.getItem('peerReviewSubmissions:all');
       if (masterRaw) {
         const master = JSON.parse(masterRaw);
-        const match = (master || []).find((m: any) =>
-          String(m?.assessmentId) === assessmentId
-        );
+        const match = (master || []).find(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (m: any) => toIdString(m?.assessmentId) === assessmentId,
+      );
         if (match) {
-          setLocalExisting(match);
+          // Also rewrite the entry so its assessmentId is now a
+          // proper string going forward — prevents the same kind of
+          // bleed on the next reload.
+          const normalized = { ...match, assessmentId };
+          setLocalExisting(normalized);
           // Also repopulate the per-key cache for next time.
-          try { window.localStorage.setItem(storageKey, JSON.stringify(match)); } catch {}
+          // eslint-disable-next-line no-empty
+          try { window.localStorage.setItem(storageKey, JSON.stringify(normalized)); } catch {}
+          // Rewrite the master list entry too.
+          try {
+            const idx = (master || []).findIndex(
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              (m: any) => toIdString(m?.assessmentId) === assessmentId,
+            );
+            if (idx >= 0) {
+              const next = [...(master || [])];
+              next[idx] = normalized;
+              window.localStorage.setItem('peerReviewSubmissions:all', JSON.stringify(next));
+            }
+          // eslint-disable-next-line no-empty
+          } catch {}
           console.log('[peer-review] hydrated from master list for', storageKey);
         }
       }
@@ -243,24 +304,32 @@ export function PeerReviewSubmissionForm({
       : null;
   // Synthetic submission doc when the summary says "submitted". This
   // is what the read-only view consumes.
-  const serverExisting = summaryForThis?.submitted
-    ? {
-        _id: undefined as any,
-        assessmentId,
-        studentId: '',
-        courseId: '',
-        courseVersionId: '',
-        cohortId: '',
-        notes: '',
-        links: [] as any[],
-        submittedAt: summaryForThis.submittedAt,
-        isLate: false,
-        reviewsCompleted: 0,
-        reviewsTotal: 3,
-        reviewAssignmentIds: [] as string[],
-        teacherOverridden: false,
-      }
-    : null;
+  // Wrapped in useMemo so the object reference is stable across renders
+  // when the underlying data hasn't changed — without this, every render
+  // produced a fresh `existing` object and triggered the form-mount
+  // writeback / notes-link sync useEffects in a loop, blowing past
+  // React's "Maximum update depth" limit.
+  const serverExisting = useMemo(
+    () => (summaryForThis?.submitted
+      ? {
+          _id: undefined as any,
+          assessmentId,
+          studentId: '',
+          courseId: '',
+          courseVersionId: '',
+          cohortId: '',
+          notes: '',
+          links: [] as any[],
+          submittedAt: summaryForThis.submittedAt,
+          isLate: false,
+          reviewsCompleted: 0,
+          reviewsTotal: 3,
+          reviewAssignmentIds: [] as string[],
+          teacherOverridden: false,
+        }
+      : null),
+    [summaryForThis?.submitted, summaryForThis?.submittedAt, assessmentId],
+  );
   // existing = server truth FIRST, localStorage optimistic SECOND.
   // Server is the canonical source per ViBe's progress-tracking
   // pattern; localStorage is just a fast-path while waiting for the
@@ -278,7 +347,7 @@ export function PeerReviewSubmissionForm({
   // Simpler: only use localStorage if the assessment prop is non-null
   // AND its _id matches the assessmentId we're keying on. course-page
   // ensures this by setting `assessment` to the freshly-fetched doc.
-  const assessmentMatchesItemId = !!(assessment && assessment._id && assessmentId && String(assessment._id) === assessmentId);
+  const assessmentMatchesItemId = !!(assessment && assessment._id && assessmentId && toIdString(assessment._id) === assessmentId);
   const localExistingForCurrent = (assessmentMatchesItemId) ? localExisting : null;
   const existing = serverExisting ?? localExistingForCurrent;
   // Belt-and-braces: keep the per-key cache in sync as a defensive
@@ -420,7 +489,7 @@ export function PeerReviewSubmissionForm({
       // read-only view on the next paint. No refetch is needed.
       const newSubmission = {
         _id: (result as any)?.submissionId,
-        assessmentId: assessment._id || assessment.assessmentId,
+        assessmentId: (assessmentId ?? String((assessment as any)?._id || (assessment as any)?.assessmentId || '')),
         studentId: '',
         courseId: (assessment as any).courseId,
         courseVersionId: (assessment as any).courseVersionId,
@@ -451,14 +520,18 @@ export function PeerReviewSubmissionForm({
           // Also append to the master list so we have a redundant
           // backup under 'peerReviewSubmissions:all'. The form looks
           // up by assessmentId there if the per-key cache is missing.
+          // Use toIdString on the comparison side so legacy entries
+          // with POJO-shaped assessmentIds are deduped correctly.
           try {
             const raw = window.localStorage.getItem('peerReviewSubmissions:all');
             const list: any[] = raw ? JSON.parse(raw) : [];
-            const filtered = (list || []).filter((m: any) =>
-              String(m?.assessmentId) !== assessmentId
+            const filtered = (list || []).filter(
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              (m: any) => toIdString(m?.assessmentId) !== assessmentId,
             );
             filtered.push(newSubmission);
             window.localStorage.setItem('peerReviewSubmissions:all', JSON.stringify(filtered));
+          // eslint-disable-next-line no-empty
           } catch {}
           console.log('[peer-review] persisted submission to localStorage', storageKey);
         } catch (e) {

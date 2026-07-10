@@ -1,12 +1,15 @@
+import 'reflect-metadata';
 import { JsonController, Post, Patch, Get, Param, Body, HttpCode, Authorized, CurrentUser, Req } from 'routing-controllers';
 import { injectable, inject } from 'inversify';
 import { ObjectId } from 'mongodb';
 import { ForbiddenError, InternalServerError, NotFoundError } from 'routing-controllers';
+import { plainToClass } from 'class-transformer';
 import { PEERREVIEW_TYPES } from '../types.js';
 import { PeerReviewAssessmentService } from '../services/PeerReviewAssessmentService.js';
 import {
   CreatePeerReviewAssessmentBody,
   UpdatePeerReviewAssessmentBody,
+  PeerReviewAssessmentResponse,
 } from '../classes/validators/PeerReviewValidators.js';
 import { IUser } from '#shared/interfaces/models.js';
 import {
@@ -107,7 +110,18 @@ export class PeerReviewAssessmentController {
     // will replace this with a CASL-aware redactor. For now we always
     // return the assessment — students reading this need it for the
     // submission form.
-    return a;
+    //
+    // Wrap in PeerReviewAssessmentResponse so class-transformer
+    // coerces Mongo ObjectIds (`{buffer:{data:[...]}}` on the wire)
+    // into plain hex strings and drops the raw `_id` (it has no
+    // @Expose). Without this, the frontend sees `[object Object]`
+    // when it template-literals `assessment._id` and every Mongo id
+    // collides — root cause of the cross-item "Submitted on time"
+    // bleed.
+    if (!a) return a;
+    // Pre-flatten so plainToClass sees `assessmentId` populated.
+    const normalized = { ...a, assessmentId: (a._id as any)?.toString?.() ?? a._id };
+    return plainToClass(PeerReviewAssessmentResponse, normalized, { enableImplicitConversion: true, excludeExtraneousValues: true });
   }
 
   /**
@@ -127,7 +141,10 @@ export class PeerReviewAssessmentController {
         `No peer-review assessment for item ${itemId}.`,
       );
     }
-    return a;
+    // See note in get() — coerce ObjectIds to hex strings so the
+    // frontend can string-compare them.
+    const normalized = { ...a, assessmentId: (a._id as any)?.toString?.() ?? a._id };
+    return plainToClass(PeerReviewAssessmentResponse, normalized, { enableImplicitConversion: true, excludeExtraneousValues: true });
   }
 
   @Post('/:id/close')
