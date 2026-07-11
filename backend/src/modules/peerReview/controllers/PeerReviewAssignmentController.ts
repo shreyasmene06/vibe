@@ -243,6 +243,55 @@ export class PeerReviewAssignmentController {
         : null;
     return { reviews: allReviews, finalScore };
   }
+
+  @Get('/students/me/peer-reviews-given')
+  @HttpCode(200)
+  @Authorized()
+  async listReviewsGiven(
+    @CurrentUser({ required: true }) user: IUser,
+  ): Promise<any[]> {
+    const allAssignments = await this.assignmentRepo.findByReviewer(
+      user._id!.toString(),
+    );
+    const submittedAssignments = allAssignments.filter(
+      (a: any) => a.status === 'SUBMITTED' && a.submittedReviewId,
+    );
+
+    if (submittedAssignments.length === 0) {
+      return [];
+    }
+
+    const results: any[] = [];
+    for (const assignment of submittedAssignments) {
+      const review = await this.reviewRepo.findById(
+        assignment.submittedReviewId!.toString(),
+      );
+      if (!review) continue;
+
+      const assessment = await this.assessmentRepo.findById(
+        assignment.assessmentId.toString(),
+      );
+
+      // Clean reviewer/submitter identities just to be safe
+      const cleanReview = stripReviewerIdentity(review);
+
+      results.push({
+        assignmentId: assignment._id?.toString(),
+        assessmentId: assignment.assessmentId.toString(),
+        assessmentTitle: assessment?.title || 'Unknown Assessment',
+        rubric: assessment?.rubric || [],
+        submittedAt: cleanReview.submittedAt,
+        scores: cleanReview.scores,
+        overallComment: cleanReview.overallComment,
+        totalScore: cleanReview.totalScore,
+        isLate: cleanReview.isLate,
+        teacherOverridden: cleanReview.teacherOverridden,
+        teacherOverrideScores: cleanReview.teacherOverrideScores,
+      });
+    }
+
+    return results;
+  }
 }
 
 // stripSubmitterIdentity / stripReviewerIdentity live in

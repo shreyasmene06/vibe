@@ -1,0 +1,129 @@
+- generic [ref=f3e2]:
+  - generic [ref=f3e10]:
+    - generic [ref=f3e13]:
+      - generic [ref=f3e15]:
+        - img "Vibe Logo" [ref=f3e17]
+        - generic [ref=f3e18]:
+          - generic [ref=f3e20]:
+            - generic [ref=f3e21]: ViBe
+            - generic [ref=f3e22]: ViBe
+          - paragraph [ref=f3e23]: Learning Platform
+      - list [ref=f3e28]:
+        - listitem [ref=f3e29]:
+          - button "Untitled Module 0/7 completed 1 sections" [expanded] [ref=f3e30] [cursor=pointer]:
+            - generic [ref=f3e33]:
+              - generic [ref=f3e34]:
+                - generic [ref=f3e35]: Untitled Module
+                - generic [ref=f3e36]: 0/7 completed
+              - generic [ref=f3e37]: 1 sections
+          - list [ref=f3e94]:
+            - listitem [ref=f3e95]:
+              - button "New Section" [expanded] [ref=f3e96] [cursor=pointer]
+              - list [ref=f3e101]:
+                - listitem [ref=f3e102]:
+                  - button "Peer-Review Tes..." [ref=f3e103] [cursor=pointer]:
+                    - generic "Peer-Review Assessment" [ref=f3e165]: Peer-Review Tes...
+                - listitem [ref=f3e111]:
+                  - button "Peer-Review Tes..." [ref=f3e112] [cursor=pointer]:
+                    - generic "Peer-Review Assessment" [ref=f3e166]: Peer-Review Tes...
+                - listitem [ref=f3e120]:
+                  - button "Peer-Review Ass..." [ref=f3e121] [cursor=pointer]:
+                    - generic "Peer-Review Assessment" [ref=f3e167]: Peer-Review Ass...
+                - listitem [ref=f3e129]:
+                  - button "Peer-Review Ass..." [ref=f3e130] [cursor=pointer]:
+                    - generic "Peer-Review Assessment" [ref=f3e168]: Peer-Review Ass...
+                - listitem [ref=f3e138]:
+                  - button "Peer-Review Ass..." [active] [ref=f3e139] [cursor=pointer]:
+                    - generic "Peer-Review Assessment" [ref=f3e169]: Peer-Review Ass...
+                - listitem [ref=f3e147]:
+                  - button "Peer-Review Ass..." [ref=f3e148] [cursor=pointer]:
+                    - generic "Peer-Review Assessment" [ref=f3e170]: Peer-Review Ass...
+                - listitem [ref=f3e156]:
+                  - button "Peer-Review Tes..." [ref=f3e157] [cursor=pointer]:
+                    - generic "Peer-Review Assessment" [ref=f3e171]: Peer-Review Tes...
+        - listitem [ref=f3e38]:
+          - button "Test Module From API 0/2 completed 1 sections" [ref=f3e39] [cursor=pointer]:
+            - generic [ref=f3e42]:
+              - generic [ref=f3e43]:
+                - generic [ref=f3e44]: Test Module From API
+                - generic [ref=f3e45]: 0/2 completed
+              - generic [ref=f3e46]: 1 sections
+      - list [ref=f3e49]:
+        - listitem [ref=f3e50]:
+          - link "Dashboard" [ref=f3e51] [cursor=pointer]:
+            - /url: /student
+        - listitem [ref=f3e57]:
+          - link "Courses" [ref=f3e58] [cursor=pointer]:
+            - /url: /student/courses
+        - listitem [ref=f3e64]:
+          - link "S Student User View Profile" [ref=f3e65] [cursor=pointer]:
+            - /url: /student/profile
+            - generic [ref=f3e66]: S
+            - generic [ref=f3e68]:
+              - generic "Student User" [ref=f3e69]
+              - generic [ref=f3e70]: View Profile
+    - separator [ref=f3e71]
+    - main [ref=f3e73]:
+      - generic [ref=f3e74]:
+        - button "Toggle Sidebar" [ref=f3e75] [cursor=pointer]
+        - button [ref=f3e77] [cursor=pointer]
+        - generic "Peer-Review Assessment" [ref=f3e172]
+        - button "Toggle theme" [ref=f3e81] [cursor=pointer]
+      - generic [ref=f3e175]:
+        - generic [ref=f3e176]:
+          - generic [ref=f3e177]: How are you feeling?
+          - generic [ref=f3e178]: About this content
+        - generic [ref=f3e179]:
+          - button "😢" [ref=f3e235] [cursor=pointer]
+          - button "😟" [ref=f3e237] [cursor=pointer]
+          - button "🤔" [ref=f3e239] [cursor=pointer]
+          - button "😊" [ref=f3e241] [cursor=pointer]
+          - button "🤩" [ref=f3e243] [cursor=pointer]
+      - generic [ref=f3e84]:
+        - generic [ref=f3e190]:
+          - button "Submit Flag" [ref=f3e191] [cursor=pointer]
+          - button "Skip" [ref=f3e193] [cursor=pointer]
+        - generic [ref=f3e245]:
+          - generic [ref=f3e246]:
+            - generic [ref=f3e247]:
+              - generic [ref=f3e248]: Peer-Review Assessment
+              - paragraph [ref=f3e249]: "Status: Not submitted"
+            - paragraph [ref=f3e251]: edwdw
+          - generic [ref=f3e252]:
+            - generic [ref=f3e253]: Rubric
+            - list [ref=f3e256]:
+              - listitem [ref=f3e257]:
+                - generic [ref=f3e258]: Code Quality
+                - generic [ref=f3e259]: / 25
+              - listitem [ref=f3e260]:
+                - generic [ref=f3e261]: Functionality
+                - generic [ref=f3e262]: / 50
+              - listitem [ref=f3e263]:
+                - generic [ref=f3e264]: Documentation
+                - generic [ref=f3e265]: / 15
+              - listitem [ref=f3e266]:
+                - generic [ref=f3e267]: Creativity
+                - generic [ref=f3e268]: / 10
+          - generic [ref=f3e269]:
+            - generic [ref=f3e270]: Notes (optional)
+            - generic [ref=f3e272]:
+              - textbox "Anything your reviewers should know about your submission..." [ref=f3e273]
+              - paragraph [ref=f3e274]: 0 / 5000
+          - generic [ref=f3e275]:
+            - generic [ref=f3e276]:
+              - generic [ref=f3e277]: Your submission links
+              - paragraph [ref=f3e278]: Paste one or more public links (Drive / GitHub / etc.). Each link is checked for public accessibility as you paste.
+            - generic [ref=f3e279]:
+              - generic [ref=f3e280]:
+                - generic [ref=f3e281]:
+                  - generic [ref=f3e282]: Label
+                  - textbox "e.g. Project Report v2" [ref=f3e283]
+                - generic [ref=f3e284]:
+                  - generic [ref=f3e285]: URL
+                  - textbox "https://drive.google.com/file/d/.../view" [ref=f3e286]
+                - button "Remove link 1" [ref=f3e287] [cursor=pointer]
+              - button "Add link" [ref=f3e288] [cursor=pointer]
+              - paragraph [ref=f3e289]: Every link needs both a label and a URL.
+          - generic [ref=f3e292]:
+            - button "Submit" [disabled]
+  - region "Notifications alt+T"

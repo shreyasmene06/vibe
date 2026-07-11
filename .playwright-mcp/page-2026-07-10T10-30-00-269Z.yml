@@ -1,0 +1,65 @@
+- generic [ref=f10e2]:
+  - generic [ref=f10e4]:
+    - generic [ref=f10e7]:
+      - generic [ref=f10e9]:
+        - generic [ref=f10e13]:
+          - heading "Vibe (Teacher)" [level=1] [ref=f10e14]
+          - paragraph [ref=f10e15]: Course Editor
+        - button "Toggle Reorder" [ref=f10e16] [cursor=pointer]
+      - list [ref=f10e22]:
+        - list [ref=f10e23]:
+          - button "Add Module" [ref=f10e25] [cursor=pointer]
+      - list [ref=f10e27]:
+        - listitem [ref=f10e28]:
+          - link "Dashboard" [ref=f10e29] [cursor=pointer]:
+            - /url: /teacher
+        - listitem [ref=f10e35]:
+          - link "Courses" [ref=f10e36] [cursor=pointer]:
+            - /url: /teacher
+        - listitem [ref=f10e42]:
+          - link "T Teacher User View Profile" [ref=f10e43] [cursor=pointer]:
+            - /url: /teacher/profile
+            - generic [ref=f10e44]: T
+            - generic [ref=f10e46]:
+              - generic "Teacher User" [ref=f10e47]
+              - generic [ref=f10e48]: View Profile
+    - separator [ref=f10e49]
+    - main [ref=f10e51]:
+      - generic [ref=f10e53]:
+        - generic [ref=f10e54]:
+          - button "Toggle Sidebar" [ref=f10e55] [cursor=pointer]
+          - navigation "breadcrumb" [ref=f10e57]:
+            - list [ref=f10e58]:
+              - listitem [ref=f10e59]:
+                - link "Dashboard" [ref=f10e60] [cursor=pointer]:
+                  - /url: /teacher
+              - listitem [ref=f10e61]
+              - listitem [ref=f10e64]:
+                - link "Teacher" [ref=f10e65] [cursor=pointer]:
+                  - /url: /teacher
+              - listitem [ref=f10e66]
+              - listitem
+        - generic [ref=f10e69]:
+          - button "Invites" [ref=f10e71] [cursor=pointer]
+          - button "Logout" [ref=f10e73] [cursor=pointer]
+          - button "Toggle theme" [ref=f10e75] [cursor=pointer]
+          - link "T" [ref=f10e77] [cursor=pointer]:
+            - /url: /teacher/profile
+      - generic [ref=f10e81]:
+        - button "Back" [ref=f10e82] [cursor=pointer]
+        - generic [ref=f10e83]:
+          - generic [ref=f10e89]:
+            - generic [ref=f10e90]:
+              - paragraph [ref=f10e91]: Course
+              - heading "Untitled Course" [level=2] [ref=f10e92]
+            - generic [ref=f10e95]:
+              - paragraph [ref=f10e96]: Version
+              - heading "Unknown Version" [level=3] [ref=f10e97]
+          - generic [ref=f10e100]:
+            - paragraph [ref=f10e101]: Loading course editor data...
+            - paragraph [ref=f10e102]: ViBe allows you to add sections in your course module using AI
+          - generic [ref=f10e103]:
+            - generic [ref=f10e104]: AI-Powered Content
+            - generic [ref=f10e107]: Smart Course Builder
+            - generic [ref=f10e110]: Interactive Learning
+  - region "Notifications alt+T"

@@ -1,0 +1,121 @@
+- generic [ref=f16e2]:
+  - generic [ref=f16e180]:
+    - generic [ref=f16e183]:
+      - generic [ref=f16e185]:
+        - img "Vibe Logo" [ref=f16e187]
+        - generic [ref=f16e188]:
+          - generic [ref=f16e190]:
+            - generic [ref=f16e191]: ViBe
+            - generic [ref=f16e192]: ViBe
+          - paragraph [ref=f16e193]: Learning Platform
+      - list [ref=f16e198]:
+        - listitem [ref=f16e199]:
+          - button "Untitled Module 0/7 completed 1 sections" [expanded] [ref=f16e200] [cursor=pointer]:
+            - generic [ref=f16e203]:
+              - generic [ref=f16e204]:
+                - generic [ref=f16e205]: Untitled Module
+                - generic [ref=f16e206]: 0/7 completed
+              - generic [ref=f16e207]: 1 sections
+          - list [ref=f16e264]:
+            - listitem [ref=f16e265]:
+              - button "New Section" [expanded] [ref=f16e266] [cursor=pointer]
+              - list [ref=f16e271]:
+                - listitem [ref=f16e272]:
+                  - button "Peer-Review Tes..." [active] [ref=f16e273] [cursor=pointer]:
+                    - generic "Peer-Review Test Assessment Item" [ref=f16e335]: Peer-Review Tes...
+                - listitem [ref=f16e281]:
+                  - button "Peer-Review Tes..." [ref=f16e282] [cursor=pointer]:
+                    - generic "Peer-Review Test Assessment Item" [ref=f16e336]: Peer-Review Tes...
+                - listitem [ref=f16e290]:
+                  - button "Peer-Review Ass..." [ref=f16e291] [cursor=pointer]:
+                    - generic "Peer-Review Test Assessment Item" [ref=f16e337]: Peer-Review Ass...
+                - listitem [ref=f16e299]:
+                  - button "Peer-Review Ass..." [ref=f16e300] [cursor=pointer]:
+                    - generic "Peer-Review Test Assessment Item" [ref=f16e338]: Peer-Review Ass...
+                - listitem [ref=f16e308]:
+                  - button "Peer-Review Ass..." [ref=f16e309] [cursor=pointer]:
+                    - generic "Peer-Review Test Assessment Item" [ref=f16e339]: Peer-Review Ass...
+                - listitem [ref=f16e317]:
+                  - button "Peer-Review Ass..." [ref=f16e318] [cursor=pointer]:
+                    - generic "Peer-Review Test Assessment Item" [ref=f16e340]: Peer-Review Ass...
+                - listitem [ref=f16e326]:
+                  - button "Peer-Review Tes..." [ref=f16e327] [cursor=pointer]:
+                    - generic "Peer-Review Test Assessment Item" [ref=f16e341]: Peer-Review Tes...
+        - listitem [ref=f16e208]:
+          - button "Test Module From API 0/2 completed 1 sections" [ref=f16e209] [cursor=pointer]:
+            - generic [ref=f16e212]:
+              - generic [ref=f16e213]:
+                - generic [ref=f16e214]: Test Module From API
+                - generic [ref=f16e215]: 0/2 completed
+              - generic [ref=f16e216]: 1 sections
+      - list [ref=f16e219]:
+        - listitem [ref=f16e220]:
+          - link "Dashboard" [ref=f16e221] [cursor=pointer]:
+            - /url: /student
+        - listitem [ref=f16e227]:
+          - link "Courses" [ref=f16e228] [cursor=pointer]:
+            - /url: /student/courses
+        - listitem [ref=f16e234]:
+          - link "S Student User View Profile" [ref=f16e235] [cursor=pointer]:
+            - /url: /student/profile
+            - generic [ref=f16e236]: S
+            - generic [ref=f16e238]:
+              - generic "Student User" [ref=f16e239]
+              - generic [ref=f16e240]: View Profile
+    - separator [ref=f16e241]
+    - main [ref=f16e243]:
+      - generic [ref=f16e244]:
+        - button "Toggle Sidebar" [ref=f16e245] [cursor=pointer]
+        - button [ref=f16e247] [cursor=pointer]
+        - generic "Peer-Review Test Assessment Item" [ref=f16e342]
+        - button "Toggle theme" [ref=f16e251] [cursor=pointer]
+      - generic [ref=f16e345]:
+        - generic [ref=f16e346]:
+          - generic [ref=f16e347]: How are you feeling?
+          - generic [ref=f16e348]: About this content
+        - generic [ref=f16e349]:
+          - button "😢" [ref=f16e350] [cursor=pointer]
+          - button "😟" [ref=f16e352] [cursor=pointer]
+          - button "🤔" [ref=f16e354] [cursor=pointer]
+          - button "😊" [ref=f16e356] [cursor=pointer]
+          - button "🤩" [ref=f16e358] [cursor=pointer]
+      - generic [ref=f16e254]:
+        - generic [ref=f16e360]:
+          - button "Submit Flag" [ref=f16e361] [cursor=pointer]
+          - button "Skip" [ref=f16e363] [cursor=pointer]
+        - generic [ref=f16e366]:
+          - generic [ref=f16e367]:
+            - generic [ref=f16e368]:
+              - generic [ref=f16e369]: Peer-Review Test Assessment
+              - paragraph [ref=f16e370]: "Status: Submitted on time"
+            - paragraph [ref=f16e372]: Backend smoke test
+          - generic [ref=f16e373]:
+            - generic [ref=f16e374]: Rubric
+            - list [ref=f16e377]:
+              - listitem [ref=f16e378]:
+                - generic [ref=f16e379]: Code Quality
+                - generic [ref=f16e380]: / 25
+              - listitem [ref=f16e381]:
+                - generic [ref=f16e382]: Functionality
+                - generic [ref=f16e383]: / 50
+              - listitem [ref=f16e384]:
+                - generic [ref=f16e385]: Documentation
+                - generic [ref=f16e386]: / 15
+              - listitem [ref=f16e387]:
+                - generic [ref=f16e388]: Creativity
+                - generic [ref=f16e389]: / 10
+          - generic [ref=f16e390]:
+            - generic [ref=f16e391]: Your submission
+            - generic [ref=f16e393]:
+              - paragraph [ref=f16e394]: Submitted on 7/10/2026, 1:19:06 PM
+              - paragraph [ref=f16e396]: No links.
+          - generic [ref=f16e397]:
+            - generic [ref=f16e398]: What's next?
+            - generic [ref=f16e400]:
+              - paragraph [ref=f16e401]:
+                - text: Your submission is in. Once the submission deadline passes, you'll be assigned
+                - strong [ref=f16e402]: 3 peer submissions
+                - text: to review.
+              - paragraph [ref=f16e403]: The peer-review round unlocks automatically — until then, you can see your queue on the Peer Reviews page.
+              - button "Go to Peer Reviews" [ref=f16e404] [cursor=pointer]
+  - region "Notifications alt+T"

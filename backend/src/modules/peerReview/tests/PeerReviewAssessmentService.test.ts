@@ -17,7 +17,7 @@ import { describe, it, expect, beforeAll, afterAll, afterEach } from 'vitest';
 import { Container } from 'inversify';
 import { InversifyAdapter } from '#root/inversify-adapter.js';
 import { useContainer } from 'routing-controllers';
-import { MongoMemoryServer } from 'mongodb-memory-server';
+import { MongoMemoryReplSet } from 'mongodb-memory-server';
 import { MongoClient, ObjectId } from 'mongodb';
 import { GLOBAL_TYPES } from '#root/types.js';
 import { peerReviewContainerModule } from '../container.js';
@@ -26,13 +26,14 @@ import { PeerReviewAssessmentService } from '../services/PeerReviewAssessmentSer
 import { PeerReviewSubmissionRepository } from '../repositories/providers/mongodb/PeerReviewSubmissionRepository.js';
 import { PeerReviewAssessmentRepository } from '../repositories/providers/mongodb/PeerReviewAssessmentRepository.js';
 import { MongoDatabase } from '#shared/database/providers/mongo/MongoDatabase.js';
+import { USERS_TYPES } from '#users/types.js';
 import {
   CreatePeerReviewAssessmentBody,
   RubricCriterionDto,
 } from '../classes/validators/PeerReviewValidators.js';
 import { IUser } from '#shared/interfaces/models.js';
 
-let mongoServer: MongoMemoryServer;
+let mongoServer: MongoMemoryReplSet;
 let mongoClient: MongoClient;
 
 let service: PeerReviewAssessmentService;
@@ -50,7 +51,7 @@ const teacher: IUser = {
 } as any;
 
 beforeAll(async () => {
-  mongoServer = await MongoMemoryServer.create();
+  mongoServer = await MongoMemoryReplSet.create({ replSet: { count: 1 } });
   const uri = mongoServer.getUri();
   mongoClient = new MongoClient(uri);
   await mongoClient.connect();
@@ -59,8 +60,16 @@ beforeAll(async () => {
   await c.load(peerReviewContainerModule);
   c.bind(GLOBAL_TYPES.uri).toConstantValue(uri);
   c.bind(GLOBAL_TYPES.dbName).toConstantValue('vibe_test_peerreview_svc');
-  c.bind(MongoDatabase).toSelf().inSingletonScope();
-  database = c.get(MongoDatabase);
+  c.bind(GLOBAL_TYPES.Database).to(MongoDatabase).inSingletonScope();
+  c.bind(MongoDatabase).toDynamicValue(() => c.get(GLOBAL_TYPES.Database));
+  c.unbind(PEERREVIEW_TYPES.PeerReviewNotificationService);
+  c.bind(PEERREVIEW_TYPES.PeerReviewNotificationService).toConstantValue({
+    notifySubmissionsClosed: async () => 'ok',
+    notifyAssignmentsOut: async () => 'ok',
+  } as any);
+  c.bind(GLOBAL_TYPES.CourseRepo).toConstantValue(makeStubCourseRepo());
+  c.bind(USERS_TYPES.ItemRepo).toConstantValue(makeStubItemRepo());
+  database = c.get<MongoDatabase>(GLOBAL_TYPES.Database);
   await database.connect();
   useContainer(new InversifyAdapter(c));
 
@@ -106,6 +115,17 @@ function makeStubItemRepo(): any {
     createItem: async (item: any) => ({ ...item, _id: new ObjectId() }),
     createItems: async (items: any[]) =>
       items.map(i => ({ ...i, _id: new ObjectId() })),
+    findItemsGroupBySectionId: async (sectionId: string) => ({
+      _id: new ObjectId(),
+      sectionId: new ObjectId(sectionId),
+      items: [],
+    }),
+    createItemsGroup: async (group: any) => ({
+      _id: new ObjectId(),
+      ...group,
+      items: [],
+    }),
+    updateItemsGroup: async (id: string, group: any) => {},
   };
 }
 

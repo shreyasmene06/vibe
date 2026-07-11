@@ -1,0 +1,102 @@
+- generic [ref=e2]:
+  - generic [ref=e255]:
+    - banner [ref=e256]:
+      - generic [ref=e257]:
+        - generic [ref=e258]:
+          - link "Vibe Logo ViBe" [ref=e259] [cursor=pointer]:
+            - /url: /student
+            - generic [ref=e260]:
+              - img "Vibe Logo" [ref=e262]
+              - generic [ref=e264]:
+                - generic [ref=e265]: ViBe
+                - generic [ref=e266]: ViBe
+          - generic [ref=e267]:
+            - link "Dashboard" [ref=e268] [cursor=pointer]:
+              - /url: /student
+              - generic [ref=e269]: Dashboard
+            - link "My Flags" [ref=e270] [cursor=pointer]:
+              - /url: /student/issues
+              - generic [ref=e271]: My Flags
+            - link "Courses" [ref=e272] [cursor=pointer]:
+              - /url: /student/courses
+              - generic [ref=e273]: Courses
+            - link "Announcements" [ref=e274] [cursor=pointer]:
+              - /url: /student/announcements
+              - generic [ref=e275]: Announcements
+            - link "My Submissions" [ref=e276] [cursor=pointer]:
+              - /url: /student/submissions
+              - generic [ref=e277]: My Submissions
+        - generic [ref=e278]:
+          - button "Notifications" [ref=e280] [cursor=pointer]:
+            - img
+            - generic [ref=e281]: Notifications
+          - button "Toggle theme" [ref=e283] [cursor=pointer]:
+            - img
+            - img
+            - generic [ref=e284]: Toggle theme
+          - button [ref=e285] [cursor=pointer]:
+            - img
+          - link "F" [ref=e286] [cursor=pointer]:
+            - /url: /student/profile
+            - generic [ref=e289]: F
+    - main [ref=e290]:
+      - generic [ref=e292]:
+        - main [ref=e293]:
+          - generic [ref=e294]:
+            - heading "Good evening, Fresh One 👋" [level=1] [ref=e295]
+            - paragraph [ref=e296]: Welcome to your learning dashboard, check your priority learning.
+            - generic [ref=e297]:
+              - generic [ref=e298]:
+                - img [ref=e300]
+                - generic [ref=e302]:
+                  - generic [ref=e303]: "0"
+                  - generic [ref=e304]: Enrolled Courses
+              - generic [ref=e305]:
+                - img [ref=e307]
+                - generic [ref=e310]:
+                  - generic [ref=e311]: 0%
+                  - generic [ref=e312]: Completion Percentage
+          - generic [ref=e313]:
+            - tablist [ref=e314]:
+              - tab "Available" [selected] [ref=e315]
+              - tab "Enrolled" [ref=e316]
+              - tab "Completed" [ref=e317]
+            - tabpanel "Available" [ref=e318]:
+              - generic [ref=e319]:
+                - heading "Recommended for you" [level=2] [ref=e320]
+                - generic [ref=e321]:
+                  - button [ref=e322] [cursor=pointer]:
+                    - img
+                  - button [ref=e323] [cursor=pointer]:
+                    - img
+              - generic [ref=e324]:
+                - generic [ref=e325]:
+                  - generic [ref=e326]:
+                    - heading [level=2]
+                    - button [ref=e327] [cursor=pointer]:
+                      - img
+                  - button "View all" [ref=e328] [cursor=pointer]
+                - generic [ref=e330]:
+                  - img [ref=e331]
+                  - heading "Discover new courses" [level=3] [ref=e333]
+                  - paragraph [ref=e334]: Explore our course catalog to find your next learning adventure
+                  - button "Browse All Courses" [ref=e335] [cursor=pointer]
+        - complementary [ref=e336]:
+          - generic [ref=e340]:
+            - generic [ref=e341]:
+              - generic [ref=e342]:
+                - img [ref=e343]
+                - heading "Learning Checklist" [level=1] [ref=e346]
+              - paragraph [ref=e347]: Add and track your personal learning tasks to stay focused
+            - generic [ref=e349]:
+              - textbox "What needs to be done?" [ref=e350]
+              - button "Add Task" [disabled]:
+                - img
+                - text: Add Task
+            - generic [ref=e352]:
+              - button "active (0)" [ref=e353] [cursor=pointer]
+              - button "completed (0)" [ref=e354] [cursor=pointer]
+            - generic [ref=e355]:
+              - paragraph [ref=e357]: Active tasks
+              - generic [ref=e358]: No tasks yet. Add one above!
+  - region "Notifications alt+T"

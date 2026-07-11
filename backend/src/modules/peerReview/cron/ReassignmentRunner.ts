@@ -82,18 +82,19 @@ export class ReassignmentRunner {
   }
 
   scheduleCron(): void {
-    const cron = require('node-cron');
-    cron.schedule('*/30 * * * *', async () => {
-      try {
-        const r = await this.runNow();
-        if (r.reassigned > 0 || r.flagged > 0) {
-          console.log(
-            `[ReassignmentRunner] reassigned=${r.reassigned} flagged=${r.flagged}`,
-          );
+    import('node-cron').then(({default: cron}) => {
+      cron.schedule('*/30 * * * *', async () => {
+        try {
+          const r = await this.runNow();
+          if (r.reassigned > 0 || r.flagged > 0) {
+            console.log(
+              `[ReassignmentRunner] reassigned=${r.reassigned} flagged=${r.flagged}`,
+            );
+          }
+        } catch (e) {
+          console.error('[ReassignmentRunner] cron error', e);
         }
-      } catch (e) {
-        console.error('[ReassignmentRunner] cron error', e);
-      }
+      });
     });
   }
 }

@@ -1,0 +1,110 @@
+- generic [ref=f5e2]:
+  - generic [ref=f5e366]:
+    - generic [ref=f5e369]:
+      - generic [ref=f5e371]:
+        - img "Vibe Logo" [ref=f5e373]
+        - generic [ref=f5e375]:
+          - generic [ref=f5e376]: ViBe
+          - generic [ref=f5e377]: ViBe
+      - generic [ref=f5e379]:
+        - generic [ref=f5e380]: Platform
+        - list [ref=f5e381]:
+          - listitem [ref=f5e382]:
+            - button "Courses" [expanded] [ref=f5e383] [cursor=pointer]
+            - list [ref=f5e390]:
+              - listitem [ref=f5e391]:
+                - generic [ref=f5e392] [cursor=pointer]: Create Course
+              - listitem [ref=f5e393]:
+                - generic [ref=f5e394] [cursor=pointer]: All Courses
+          - listitem [ref=f5e395]:
+            - generic [ref=f5e396] [cursor=pointer]: Announcements
+          - listitem [ref=f5e401]:
+            - generic [ref=f5e402] [cursor=pointer]: HP System
+      - link "T Teacher User View Profile" [ref=f5e408] [cursor=pointer]:
+        - /url: /teacher/profile
+        - generic [ref=f5e409]: T
+        - generic [ref=f5e411]:
+          - generic "Teacher User" [ref=f5e412]
+          - generic [ref=f5e413]: View Profile
+      - button "Toggle Sidebar" [ref=f5e414]
+    - main [ref=f5e415]:
+      - generic [ref=f5e417]:
+        - generic [ref=f5e418]:
+          - button "Toggle Sidebar" [ref=f5e419] [cursor=pointer]
+          - navigation "breadcrumb" [ref=f5e421]:
+            - list [ref=f5e422]:
+              - listitem [ref=f5e423]:
+                - link "Dashboard" [ref=f5e424] [cursor=pointer]:
+                  - /url: /teacher
+              - listitem [ref=f5e425]
+              - listitem [ref=f5e428]:
+                - link "Teacher" [ref=f5e429] [cursor=pointer]:
+                  - /url: /teacher
+              - listitem [ref=f5e430]
+              - listitem
+        - generic [ref=f5e433]:
+          - button "Notifications" [ref=f5e435] [cursor=pointer]
+          - button "Logout" [ref=f5e437] [cursor=pointer]
+          - button "Toggle theme" [ref=f5e439] [cursor=pointer]
+          - link "T" [ref=f5e441] [cursor=pointer]:
+            - /url: /teacher/profile
+      - generic [ref=f5e447]:
+        - generic [ref=f5e451]:
+          - generic [ref=f5e460]:
+            - heading "My Courses" [level=1] [ref=f5e461]
+            - generic [ref=f5e462]: Manage your courses and versions with ease
+          - button "Create New Course" [ref=f5e468] [cursor=pointer]
+        - generic [ref=f5e476]:
+          - tablist [ref=f5e478]:
+            - tab "Active Versions(3)" [selected] [ref=f5e479]
+            - tab "Archived Versions(0)" [ref=f5e480]
+          - generic [ref=f5e481]:
+            - textbox "Search courses..." [ref=f5e488]
+            - generic [ref=f5e493]: 3 courses
+        - generic [ref=f5e497]:
+          - generic [ref=f5e500]:
+            - generic [ref=f5e503]:
+              - generic [ref=f5e511] [cursor=pointer]:
+                - generic [ref=f5e512]: Demo Course
+                - generic [ref=f5e515]: Last updated Earlier today
+              - button [ref=f5e521] [cursor=pointer]
+            - generic [ref=f5e571]:
+              - generic [ref=f5e572]:
+                - heading "Course Description" [level=3] [ref=f5e573]
+                - paragraph [ref=f5e579]: Auto-seeded demo course for local peer-review development.
+              - generic [ref=f5e580]:
+                - heading "All Versions (1)" [level=3] [ref=f5e582]
+                - generic [ref=f5e591]:
+                  - generic [ref=f5e592]:
+                    - generic [ref=f5e594]:
+                      - generic [ref=f5e595]:
+                        - heading "v1" [level=4] [ref=f5e596]
+                        - generic [ref=f5e597]: Version
+                      - generic [ref=f5e598]:
+                        - generic [ref=f5e599]: 1 Modules
+                        - generic [ref=f5e603]: 1 Sections
+                        - generic [ref=f5e608]: Last updated Earlier today
+                    - generic [ref=f5e613]:
+                      - button "Check Project Submissions" [ref=f5e614] [cursor=pointer]
+                      - button [ref=f5e615] [cursor=pointer]
+                  - generic [ref=f5e616]:
+                    - heading "Version Details" [level=4] [ref=f5e617]
+                    - paragraph [ref=f5e622]: Default version for local peer-review development.
+                  - generic [ref=f5e623]:
+                    - button "View Flags" [ref=f5e624] [cursor=pointer]
+                    - button "View Enrollments" [ref=f5e625] [cursor=pointer]
+                    - button "Registrations" [ref=f5e626] [cursor=pointer]
+                    - button "Ejection Policies" [ref=f5e627] [cursor=pointer]
+                    - button "Manage" [ref=f5e628] [cursor=pointer]
+                    - button "Announce" [ref=f5e629] [cursor=pointer]
+          - generic [ref=f5e527]:
+            - generic [ref=f5e535] [cursor=pointer]:
+              - generic [ref=f5e536]: Test course
+              - generic [ref=f5e539]: Last updated 2 days ago
+            - button [ref=f5e545] [cursor=pointer]
+          - generic [ref=f5e551]:
+            - generic [ref=f5e559] [cursor=pointer]:
+              - generic [ref=f5e560]: wdwdwdwd
+              - generic [ref=f5e563]: Last updated Earlier today
+            - button [ref=f5e569] [cursor=pointer]
+  - region "Notifications alt+T"

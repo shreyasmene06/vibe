@@ -3,7 +3,7 @@
  *
  * These are pure unit tests — no DB, no DI. We run them with vitest.
  */
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { detectKind } from '../utils/urlKindDetector.js';
 import { PeerReviewUrlAccessibilityService } from '../services/PeerReviewUrlAccessibilityService.js';
 
@@ -79,6 +79,15 @@ describe('PeerReviewUrlAccessibilityService', () => {
   beforeEach(() => {
     service = new PeerReviewUrlAccessibilityService();
     service.clearCache();
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      status: 200,
+      url: 'https://example.com',
+      ok: true,
+    }));
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
   });
 
   it('rejects malformed URLs without making a request', async () => {

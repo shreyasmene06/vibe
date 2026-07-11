@@ -1,6 +1,6 @@
 import 'reflect-metadata';
 import { injectable, inject } from 'inversify';
-import { ClientSession, Collection } from 'mongodb';
+import { ClientSession, Collection, ObjectId } from 'mongodb';
 import { MongoDatabase } from '#shared/database/providers/mongo/MongoDatabase.js';
 import { InternalServerError } from 'routing-controllers';
 import { GLOBAL_TYPES } from '#root/types.js';
@@ -53,7 +53,10 @@ export class PeerReviewReviewRepository {
 
   async findById(id: string): Promise<IPeerReviewReview | null> {
     await this.init();
-    const doc = await this.collection.findOne({ _id: id as any });
+    const filter = ObjectId.isValid(id)
+      ? { _id: new ObjectId(id) as any }
+      : { _id: id as any };
+    const doc = await this.collection.findOne(filter);
     if (!doc) return null;
     return doc as IPeerReviewReview;
   }
@@ -62,9 +65,14 @@ export class PeerReviewReviewRepository {
     assignmentId: string,
   ): Promise<IPeerReviewReview | null> {
     await this.init();
-    const doc = await this.collection.findOne({
-      assignmentId: assignmentId as any,
-    });
+    // assignmentId is stored as ObjectId; coerce the incoming string.
+    const filter: any = {};
+    if (ObjectId.isValid(assignmentId)) {
+      filter.assignmentId = new ObjectId(assignmentId);
+    } else {
+      filter.assignmentId = assignmentId;
+    }
+    const doc = await this.collection.findOne(filter);
     if (!doc) return null;
     return doc as IPeerReviewReview;
   }
@@ -73,9 +81,13 @@ export class PeerReviewReviewRepository {
     submissionId: string,
   ): Promise<IPeerReviewReview[]> {
     await this.init();
-    const docs = await this.collection
-      .find({ submissionId: submissionId as any })
-      .toArray();
+    const filter: any = {};
+    if (ObjectId.isValid(submissionId)) {
+      filter.submissionId = new ObjectId(submissionId);
+    } else {
+      filter.submissionId = submissionId;
+    }
+    const docs = await this.collection.find(filter).toArray();
     return docs as IPeerReviewReview[];
   }
 
@@ -84,12 +96,18 @@ export class PeerReviewReviewRepository {
     reviewerId: string,
   ): Promise<IPeerReviewReview[]> {
     await this.init();
-    const docs = await this.collection
-      .find({
-        assessmentId: assessmentId as any,
-        reviewerId: reviewerId as any,
-      })
-      .toArray();
+    const filter: any = {};
+    if (ObjectId.isValid(assessmentId)) {
+      filter.assessmentId = new ObjectId(assessmentId);
+    } else {
+      filter.assessmentId = assessmentId;
+    }
+    if (ObjectId.isValid(reviewerId)) {
+      filter.reviewerId = new ObjectId(reviewerId);
+    } else {
+      filter.reviewerId = reviewerId;
+    }
+    const docs = await this.collection.find(filter).toArray();
     return docs as IPeerReviewReview[];
   }
 
@@ -113,8 +131,11 @@ export class PeerReviewReviewRepository {
     session?: ClientSession,
   ): Promise<void> {
     await this.init();
+    const filter = ObjectId.isValid(id)
+      ? { _id: new ObjectId(id) as any }
+      : { _id: id as any };
     await this.collection.updateOne(
-      { _id: id as any },
+      filter,
       {
         $set: {
           teacherOverridden: true,

@@ -39,7 +39,10 @@ export class PeerReviewSubmissionRepository {
 
   async findById(id: string): Promise<IPeerReviewSubmission | null> {
     await this.init();
-    const doc = await this.collection.findOne({ _id: id as any });
+    const filter = ObjectId.isValid(id)
+      ? { _id: new ObjectId(id) as any }
+      : { _id: id as any };
+    const doc = await this.collection.findOne(filter);
     if (!doc) return null;
     return doc as IPeerReviewSubmission;
   }
@@ -67,9 +70,19 @@ export class PeerReviewSubmissionRepository {
     assessmentId: string,
   ): Promise<IPeerReviewSubmission[]> {
     await this.init();
-    const docs = await this.collection
-      .find({ assessmentId: assessmentId as any })
-      .toArray();
+    // assessmentId is stored as an ObjectId on every submission; the
+    // HTTP layer passes a 24-hex string, so coerce here. Without this,
+    // queries silently return [] and the assignment algorithm short-
+    // circuits to `insufficient_submissions` (because submissions.length
+    // === 0), and assignmentRunAt gets stamped on a phantom
+    // "ran" — never inserting any actual reviewer pairs.
+    const filter: any = {};
+    if (ObjectId.isValid(assessmentId)) {
+      filter.assessmentId = new ObjectId(assessmentId);
+    } else {
+      filter.assessmentId = assessmentId;
+    }
+    const docs = await this.collection.find(filter).toArray();
     return docs as IPeerReviewSubmission[];
   }
 
@@ -138,13 +151,16 @@ export class PeerReviewSubmissionRepository {
     void _omitStudentId;
     void _omitAssessmentId;
     void _omitCreatedAt;
+    const queryAssessmentId = ObjectId.isValid(assessmentId)
+      ? new ObjectId(assessmentId)
+      : assessmentId;
     try {
       const result = await this.collection.findOneAndUpdate(
-        { assessmentId: assessmentId as any, studentId: studentId as any },
+        { assessmentId: queryAssessmentId as any, studentId: studentId as any },
         {
           $set: { ...safePatch, updatedAt: now },
           $setOnInsert: {
-            assessmentId,
+            assessmentId: queryAssessmentId as any,
             studentId,
             createdAt: now,
             reviewsCompleted: 0,
@@ -178,8 +194,11 @@ export class PeerReviewSubmissionRepository {
     session?: ClientSession,
   ): Promise<void> {
     await this.init();
+    const filter = ObjectId.isValid(id)
+      ? { _id: new ObjectId(id) as any }
+      : { _id: id as any };
     await this.collection.updateOne(
-      { _id: id as any },
+      filter,
       { $set: { reviewsTotal: total, updatedAt: new Date() } },
       { session },
     );
@@ -190,8 +209,11 @@ export class PeerReviewSubmissionRepository {
     session?: ClientSession,
   ): Promise<void> {
     await this.init();
+    const filter = ObjectId.isValid(id)
+      ? { _id: new ObjectId(id) as any }
+      : { _id: id as any };
     await this.collection.updateOne(
-      { _id: id as any },
+      filter,
       { $inc: { reviewsCompleted: 1 }, $set: { updatedAt: new Date() } },
       { session },
     );
@@ -203,8 +225,15 @@ export class PeerReviewSubmissionRepository {
     session?: ClientSession,
   ): Promise<void> {
     await this.init();
+    // submissions._id is an ObjectId in mongo; the assignmentId we push
+    // is also an ObjectId string (from createMany). Coerce both, otherwise
+    // the updateOne filter silently matches 0 docs and reviewAssignmentIds
+    // stays empty.
+    const filter = ObjectId.isValid(id)
+      ? { _id: new ObjectId(id) as any }
+      : { _id: id as any };
     await this.collection.updateOne(
-      { _id: id as any },
+      filter,
       {
         $push: { reviewAssignmentIds: assignmentId as any },
         $set: { updatedAt: new Date() },
@@ -220,8 +249,11 @@ export class PeerReviewSubmissionRepository {
     session?: ClientSession,
   ): Promise<void> {
     await this.init();
+    const filter = ObjectId.isValid(id)
+      ? { _id: new ObjectId(id) as any }
+      : { _id: id as any };
     await this.collection.updateOne(
-      { _id: id as any },
+      filter,
       {
         $set: {
           finalScore: totalScore,
@@ -243,8 +275,11 @@ export class PeerReviewSubmissionRepository {
     session?: ClientSession,
   ): Promise<void> {
     await this.init();
+    const filter = ObjectId.isValid(id)
+      ? { _id: new ObjectId(id) as any }
+      : { _id: id as any };
     await this.collection.updateOne(
-      { _id: id as any },
+      filter,
       {
         $set: {
           finalScore: null,
@@ -264,8 +299,11 @@ export class PeerReviewSubmissionRepository {
     session?: ClientSession,
   ): Promise<void> {
     await this.init();
+    const filter = ObjectId.isValid(id)
+      ? { _id: new ObjectId(id) as any }
+      : { _id: id as any };
     await this.collection.updateOne(
-      { _id: id as any },
+      filter,
       {
         $set: {
           teacherOverridden: true,

@@ -25,6 +25,8 @@ import { PeerReviewNotificationService } from '../services/PeerReviewNotificatio
 import { IUser } from '#shared/interfaces/models.js';
 import { setAuditTrail } from '#root/utils/setAuditTrail.js';
 import { AuditCategory, AuditAction } from '#root/modules/auditTrails/interfaces/IAuditTrails.js';
+import { GLOBAL_TYPES } from '#root/types.js';
+import { IUserRepository } from '#root/shared/database/interfaces/IUserRepository.js';
 
 /**
  * Teacher-side HTTP endpoints.
@@ -45,8 +47,10 @@ import { AuditCategory, AuditAction } from '#root/modules/auditTrails/interfaces
  *     Sets override flags, recomputes finalScore, fires
  *     notify-on-override to the submitter.
  *
- *   POST /peer-review-assessments/:id/close
- *     Explicit teacher-triggered close (bypasses the cron).
+ * NOTE: explicit teacher-triggered close lives in
+ * PeerReviewAssessmentController (`POST /peer-review-assessments/:id/close`),
+ * which calls the real PeerReviewAssessmentService.close() — algorithm + notify.
+ * Do NOT add a stub close here; it would shadow the real route.
  *
  * Role enforcement: @Authorized(['INSTRUCTOR', 'MANAGER']) at the
  * controller decorator. Per-course CASL check is the existing
@@ -71,6 +75,8 @@ export class PeerReviewTeacherController {
     private readonly scoringService: PeerReviewScoringService,
     @inject(PEERREVIEW_TYPES.PeerReviewNotificationService)
     private readonly notifier: PeerReviewNotificationService,
+    @inject(GLOBAL_TYPES.UserRepo)
+    private readonly userRepo: IUserRepository,
   ) {}
 
   @Get('/peer-review-assessments/:id/submissions')
@@ -85,18 +91,41 @@ export class PeerReviewTeacherController {
       throw new NotFoundError('Assessment not found.');
     }
     const submissions = await this.submissionRepo.findByAssessment(id);
-    const out: any[] = [];
+    const submissionsWithAssignments: any[] = [];
+    const allUserIds = new Set<string>();
+
     for (const s of submissions as any[]) {
       const studentId = (s.studentId as any)?.toString();
-      const assignments =
-        await this.assignmentRepo.findBySubmission((s._id as any).toString());
+      if (studentId) allUserIds.add(studentId);
+
+      const assignments = await this.assignmentRepo.findBySubmission((s._id as any).toString());
+      for (const a of assignments as any[]) {
+        const reviewerId = (a.reviewerId as any)?.toString();
+        if (reviewerId) allUserIds.add(reviewerId);
+      }
+      submissionsWithAssignments.push({ s, assignments });
+    }
+
+    const usersList = await this.userRepo.getUsersByIds(Array.from(allUserIds));
+    const userMap = new Map<string, { name: string; email: string }>();
+    for (const u of usersList) {
+      userMap.set(u._id!.toString(), {
+        name: `${u.firstName || ''} ${u.lastName || ''}`.trim() || u.email,
+        email: u.email,
+      });
+    }
+
+    const out: any[] = [];
+    for (const { s, assignments } of submissionsWithAssignments) {
+      const studentId = (s.studentId as any)?.toString();
       const reviewerDetails: any[] = [];
       for (const a of assignments as any[]) {
+        const reviewerId = (a.reviewerId as any)?.toString();
         reviewerDetails.push({
           assignmentId: (a._id as any).toString(),
-          reviewerId: (a.reviewerId as any).toString(),
-          // reviewerName / reviewerEmail left to the client to resolve
-          // via /users/:id (or whatever the user lookup endpoint is)
+          reviewerId,
+          reviewerName: userMap.get(reviewerId)?.name || 'Unknown',
+          reviewerEmail: userMap.get(reviewerId)?.email || '',
           status: a.status,
           reassignmentCount: a.reassignmentCount,
         });
@@ -104,6 +133,8 @@ export class PeerReviewTeacherController {
       out.push({
         submissionId: (s._id as any).toString(),
         studentId,
+        studentName: userMap.get(studentId)?.name || 'Unknown',
+        studentEmail: userMap.get(studentId)?.email || '',
         submittedAt: s.submittedAt,
         isLate: s.isLate,
         notes: s.notes,
@@ -130,26 +161,52 @@ export class PeerReviewTeacherController {
       throw new NotFoundError('Assessment not found.');
     }
     const submissions = await this.submissionRepo.findByAssessment(id);
-    const out: any[] = [];
+    const allUserIds = new Set<string>();
+    const reviewsWithDetails: any[] = [];
+
     for (const s of submissions as any[]) {
+      const studentId = (s.studentId as any)?.toString();
+      if (studentId) allUserIds.add(studentId);
+
       const reviews = await this.reviewRepo.findBySubmission(
         (s._id as any).toString(),
       );
       for (const r of reviews as any[]) {
-        out.push({
-          reviewId: (r._id as any).toString(),
-          submissionId: (s._id as any).toString(),
-          studentId: (s.studentId as any)?.toString(),
-          reviewerId: (r.reviewerId as any)?.toString(),
-          scores: r.scores ?? [],
-          overallComment: r.overallComment ?? '',
-          totalScore: r.totalScore ?? 0,
-          submittedAt: r.submittedAt,
-          isLate: r.isLate,
-          teacherOverridden: !!r.teacherOverridden,
-          teacherOverrideReason: r.teacherOverrideReason ?? null,
-        });
+        const reviewerId = (r.reviewerId as any)?.toString();
+        if (reviewerId) allUserIds.add(reviewerId);
+        reviewsWithDetails.push({ r, studentId });
       }
+    }
+
+    const usersList = await this.userRepo.getUsersByIds(Array.from(allUserIds));
+    const userMap = new Map<string, { name: string; email: string }>();
+    for (const u of usersList) {
+      userMap.set(u._id!.toString(), {
+        name: `${u.firstName || ''} ${u.lastName || ''}`.trim() || u.email,
+        email: u.email,
+      });
+    }
+
+    const out: any[] = [];
+    for (const { r, studentId } of reviewsWithDetails) {
+      const reviewerId = (r.reviewerId as any)?.toString();
+      out.push({
+        reviewId: (r._id as any).toString(),
+        submissionId: (r.submissionId as any).toString(),
+        studentId,
+        studentName: userMap.get(studentId)?.name || 'Unknown',
+        studentEmail: userMap.get(studentId)?.email || '',
+        reviewerId,
+        reviewerName: userMap.get(reviewerId)?.name || 'Unknown',
+        reviewerEmail: userMap.get(reviewerId)?.email || '',
+        scores: r.scores ?? [],
+        overallComment: r.overallComment ?? '',
+        totalScore: r.totalScore ?? 0,
+        submittedAt: r.submittedAt,
+        isLate: r.isLate,
+        teacherOverridden: !!r.teacherOverridden,
+        teacherOverrideReason: r.teacherOverrideReason ?? null,
+      });
     }
     return { reviews: out };
   }
@@ -255,18 +312,8 @@ export class PeerReviewTeacherController {
     };
   }
 
-  @Post('/peer-review-assessments/:id/close')
-  @HttpCode(200)
-  @Authorized(['INSTRUCTOR', 'MANAGER'])
-  async closeAssessment(
-    @CurrentUser({ required: true }) _user: IUser,
-    @Param('id') id: string,
-  ): Promise<any> {
-    const assessment = await this.assessmentRepo.findById(id);
-    if (!assessment || (assessment as any).isDeleted) {
-      throw new NotFoundError('Assessment not found.');
-    }
-    await this.assessmentRepo.setClosed(id, new Date());
-    return { ok: true, closedAt: new Date().toISOString() };
-  }
+  // closeAssessment intentionally removed — it was a stub that just
+  // stamped closedAt and never ran the assignment algorithm or fired
+  // notifications. The real close lives in
+  // PeerReviewAssessmentController.close → PeerReviewAssessmentService.close().
 }

@@ -7,6 +7,7 @@ import { PEERREVIEW_TYPES } from '../types.js';
 import { PeerReviewAssessmentRepository } from '../repositories/providers/mongodb/PeerReviewAssessmentRepository.js';
 import { PeerReviewSubmissionRepository } from '../repositories/providers/mongodb/PeerReviewSubmissionRepository.js';
 import { PeerReviewAssignmentRepository } from '../repositories/providers/mongodb/PeerReviewAssignmentRepository.js';
+import { PeerReviewNotificationService } from './PeerReviewNotificationService.js';
 import {
   assignReviewers,
   pairsFromAssignments,
@@ -36,10 +37,53 @@ export class PeerReviewAssignmentService extends BaseService {
     private readonly submissionRepo: PeerReviewSubmissionRepository,
     @inject(PEERREVIEW_TYPES.PeerReviewAssignmentRepo)
     private readonly assignmentRepo: PeerReviewAssignmentRepository,
+    @inject(PEERREVIEW_TYPES.PeerReviewNotificationService)
+    private readonly notifier: PeerReviewNotificationService,
     @inject(GLOBAL_TYPES.Database)
-    database: MongoDatabase,
+    private readonly database: MongoDatabase,
   ) {
     super(database);
+  }
+
+  /**
+   * Fan out `notifyAssignmentsOut` to every distinct reviewer on this
+   * assessment, with their individual review count. Called by both the
+   * manual-close path (PeerReviewAssessmentService.close) and the
+   * AssignmentRunner cron — single source of truth so the two paths
+   * can't drift.
+   */
+  async notifyReviewersOfAssignments(assessmentId: string): Promise<number> {
+    const assessment = await this.assessmentRepo.findById(assessmentId);
+    if (!assessment) return 0;
+    const assignments = await this.assignmentRepo.findByAssessment(
+      assessmentId,
+    );
+    const byReviewer = new Map<string, number>();
+    for (const asn of assignments as any[]) {
+      const reviewerId = (asn.reviewerId as any).toString();
+      byReviewer.set(reviewerId, (byReviewer.get(reviewerId) ?? 0) + 1);
+    }
+    let notified = 0;
+    for (const [reviewerId, count] of byReviewer.entries()) {
+      try {
+        await this.notifier.notifyAssignmentsOut({
+          userId: reviewerId,
+          courseId: (assessment as any).courseId?.toString(),
+          courseVersionId: (assessment as any).courseVersionId?.toString(),
+          assessmentId,
+          assessmentTitle: (assessment as any).title ?? 'Peer-review assessment',
+          dueAt: (assessment as any).reviewDeadline,
+          count,
+        });
+        notified++;
+      } catch (err) {
+        console.warn(
+          `[peer-review:runForAssessment] notifyAssignmentsOut failed for reviewer ${reviewerId}:`,
+          err,
+        );
+      }
+    }
+    return notified;
   }
 
   /**
@@ -125,8 +169,14 @@ export class PeerReviewAssignmentService extends BaseService {
     const assignColl = await db.getCollection('peer_review_assignments');
     const { ObjectId: MongoObjectId } = await import('mongodb');
     for (const otherId of otherAssessmentIds) {
+      const filter: any = {};
+      if (MongoObjectId.isValid(otherId)) {
+        filter.assessmentId = new MongoObjectId(otherId);
+      } else {
+        filter.assessmentId = otherId;
+      }
       const rows = await assignColl
-        .find({ assessmentId: otherId as any })
+        .find(filter)
         .toArray();
       for (const row of rows) {
         priorPairs.push(
@@ -203,9 +253,17 @@ export class PeerReviewAssignmentService extends BaseService {
     // 7. Stamp assignmentRunAt so we don't re-run.
     await this.assessmentRepo.setAssignmentRunAt(assessmentId, new Date());
 
-    // 8. Fire notifications (assignments.out per reviewer). Wired in
-    //    Phase 4.2.4 — the AssignmentRunner cron layer calls the
-    //    notification service directly.
+    // 8. Fan out notifyAssignmentsOut per reviewer. Notification
+    //    delivery is best-effort — a single failure must not roll back
+    //    the assignment inserts we just did.
+    try {
+      await this.notifyReviewersOfAssignments(assessmentId);
+    } catch (err) {
+      console.warn(
+        `[peer-review:runForAssessment] notifyReviewersOfAssignments failed for ${assessmentId}:`,
+        err,
+      );
+    }
 
     return {
       status: 'ran',

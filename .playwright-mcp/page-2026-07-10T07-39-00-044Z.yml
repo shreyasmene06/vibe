@@ -1,0 +1,161 @@
+- generic [ref=f3e2]:
+  - generic [ref=f3e4]:
+    - generic [ref=f3e6]:
+      - generic [ref=f3e7]:
+        - generic [ref=f3e8]:
+          - img "VLED Logo" [ref=f3e9]
+          - img "IIT Logo" [ref=f3e10]
+        - heading "Welcome to the Future of Learning" [level=1] [ref=f3e11]
+      - generic [ref=f3e12]:
+        - generic [ref=f3e13]:
+          - heading "E m p o w e r i n g E d u c a t i o n f o r A l l" [level=3] [ref=f3e14]:
+            - generic [ref=f3e15]: E
+            - generic [ref=f3e16]: m
+            - generic [ref=f3e17]: p
+            - generic [ref=f3e18]: o
+            - generic [ref=f3e19]: w
+            - generic [ref=f3e20]: e
+            - generic [ref=f3e21]: r
+            - generic [ref=f3e22]: i
+            - generic [ref=f3e23]: "n"
+            - generic [ref=f3e24]: g
+            - generic [ref=f3e26]: E
+            - generic [ref=f3e27]: d
+            - generic [ref=f3e28]: u
+            - generic [ref=f3e29]: c
+            - generic [ref=f3e30]: a
+            - generic [ref=f3e31]: t
+            - generic [ref=f3e32]: i
+            - generic [ref=f3e33]: o
+            - generic [ref=f3e34]: "n"
+            - generic [ref=f3e36]: f
+            - generic [ref=f3e37]: o
+            - generic [ref=f3e38]: r
+            - generic [ref=f3e40]: A
+            - generic [ref=f3e41]: l
+            - generic [ref=f3e42]: l
+          - paragraph [ref=f3e43]: Connect, collaborate, and grow with our innovative educational platform designed for the next generation
+          - generic [ref=f3e44]:
+            - button "Explore Demo" [ref=f3e45] [cursor=pointer]
+            - button "Get Started" [ref=f3e46] [cursor=pointer]
+        - iframe [ref=f3e48]:
+          
+    - generic [ref=f3e50]:
+      - img "classroom image" [ref=f3e52]
+      - generic [ref=f3e53]:
+        - heading "W h y C h o o s e V i B e ?" [level=3] [ref=f3e54]:
+          - generic [ref=f3e55]: W
+          - generic [ref=f3e56]: h
+          - generic [ref=f3e57]: "y"
+          - generic [ref=f3e59]: C
+          - generic [ref=f3e60]: h
+          - generic [ref=f3e61]: o
+          - generic [ref=f3e62]: o
+          - generic [ref=f3e63]: s
+          - generic [ref=f3e64]: e
+          - generic [ref=f3e66]: V
+          - generic [ref=f3e67]: i
+          - generic [ref=f3e68]: B
+          - generic [ref=f3e69]: e
+          - generic [ref=f3e70]: "?"
+        - paragraph [ref=f3e71]: ViBe is an online learning platform that helps students stay engaged. It uses smart checks, quick quizzes, and flexible tools to make learning more active and honest.
+        - button "Explore Demo" [ref=f3e73] [cursor=pointer]
+    - generic [ref=f3e76]:
+      - generic [ref=f3e77]:
+        - heading "T r a n s f o r m Y o u r L e a r n i n g E x p e r i e n c e" [level=3] [ref=f3e78]:
+          - generic [ref=f3e79]: T
+          - generic [ref=f3e80]: r
+          - generic [ref=f3e81]: a
+          - generic [ref=f3e82]: "n"
+          - generic [ref=f3e83]: s
+          - generic [ref=f3e84]: f
+          - generic [ref=f3e85]: o
+          - generic [ref=f3e86]: r
+          - generic [ref=f3e87]: m
+          - generic [ref=f3e89]: "Y"
+          - generic [ref=f3e90]: o
+          - generic [ref=f3e91]: u
+          - generic [ref=f3e92]: r
+          - generic [ref=f3e94]: L
+          - generic [ref=f3e95]: e
+          - generic [ref=f3e96]: a
+          - generic [ref=f3e97]: r
+          - generic [ref=f3e98]: "n"
+          - generic [ref=f3e99]: i
+          - generic [ref=f3e100]: "n"
+          - generic [ref=f3e101]: g
+          - generic [ref=f3e103]: E
+          - generic [ref=f3e104]: x
+          - generic [ref=f3e105]: p
+          - generic [ref=f3e106]: e
+          - generic [ref=f3e107]: r
+          - generic [ref=f3e108]: i
+          - generic [ref=f3e109]: e
+          - generic [ref=f3e110]: "n"
+          - generic [ref=f3e111]: c
+          - generic [ref=f3e112]: e
+        - button "Continue To Login" [ref=f3e116] [cursor=pointer]
+      - img "learning image" [ref=f3e118]
+    - generic [ref=f3e120]:
+      - img "innovators image" [ref=f3e122]
+      - generic [ref=f3e123]:
+        - heading "J o i n a C o m m u n i t y o f I n n o v a t o r s" [level=3] [ref=f3e124]:
+          - generic [ref=f3e125]: J
+          - generic [ref=f3e126]: o
+          - generic [ref=f3e127]: i
+          - generic [ref=f3e128]: "n"
+          - generic [ref=f3e130]: a
+          - generic [ref=f3e132]: C
+          - generic [ref=f3e133]: o
+          - generic [ref=f3e134]: m
+          - generic [ref=f3e135]: m
+          - generic [ref=f3e136]: u
+          - generic [ref=f3e137]: "n"
+          - generic [ref=f3e138]: i
+          - generic [ref=f3e139]: t
+          - generic [ref=f3e140]: "y"
+          - generic [ref=f3e142]: o
+          - generic [ref=f3e143]: f
+          - generic [ref=f3e145]: I
+          - generic [ref=f3e146]: "n"
+          - generic [ref=f3e147]: "n"
+          - generic [ref=f3e148]: o
+          - generic [ref=f3e149]: v
+          - generic [ref=f3e150]: a
+          - generic [ref=f3e151]: t
+          - generic [ref=f3e152]: o
+          - generic [ref=f3e153]: r
+          - generic [ref=f3e154]: s
+        - paragraph [ref=f3e155]: Learn how ViBe is reshaping education through collaboration and technology, empowering learners to thrive.
+        - button "GitHub Link" [ref=f3e157] [cursor=pointer]
+    - generic [ref=f3e162]:
+      - heading "F u n d e d b y" [level=3] [ref=f3e163]:
+        - generic [ref=f3e164]: F
+        - generic [ref=f3e165]: u
+        - generic [ref=f3e166]: "n"
+        - generic [ref=f3e167]: d
+        - generic [ref=f3e168]: e
+        - generic [ref=f3e169]: d
+        - generic [ref=f3e171]: b
+        - generic [ref=f3e172]: "y"
+      - img "Logos" [ref=f3e174]
+    - generic [ref=f3e176]:
+      - generic [ref=f3e177]:
+        - generic [ref=f3e178]:
+          - heading "Stay Connected" [level=3] [ref=f3e179]
+          - paragraph [ref=f3e181]: Your journey starts here.
+        - generic [ref=f3e182]:
+          - link "Home" [ref=f3e183] [cursor=pointer]:
+            - /url: "#"
+          - link "About Us" [ref=f3e184] [cursor=pointer]:
+            - /url: https://github.com/vicharanashala/vibe/blob/combined-updates/README.md
+          - link "Resources" [ref=f3e185] [cursor=pointer]:
+            - /url: https://github.com/vicharanashala/vibe.git
+          - link "Contact Us" [ref=f3e186] [cursor=pointer]:
+            - /url: https://github.com/vicharanashala/vibe.git
+      - generic [ref=f3e187]:
+        - heading "Sign up for updates and insights." [level=4] [ref=f3e188]
+        - generic [ref=f3e189]:
+          - textbox "Your email address" [ref=f3e190]
+          - button "Sign Up" [ref=f3e191] [cursor=pointer]
+  - region "Notifications alt+T"

@@ -1,3 +1,5 @@
+import { ObjectId } from 'mongodb';
+
 /**
  * Double-blind payload filters.
  *
@@ -48,7 +50,12 @@ export function stripSubmitterIdentity(obj: any): any {
   const out: any = {};
   for (const k of Object.keys(obj || {})) {
     if (allowed.has(k)) {
-      out[k] = obj[k];
+      const val = obj[k];
+      if (val && typeof val === 'object' && (val instanceof ObjectId || val._bsontype === 'ObjectID')) {
+        out[k] = val.toString();
+      } else {
+        out[k] = val;
+      }
     }
   }
   return out;
@@ -79,7 +86,12 @@ export function stripReviewerIdentity(obj: any): any {
   const out: any = {};
   for (const k of Object.keys(obj || {})) {
     if (allowed.has(k)) {
-      out[k] = obj[k];
+      const val = obj[k];
+      if (val && typeof val === 'object' && (val instanceof ObjectId || val._bsontype === 'ObjectID')) {
+        out[k] = val.toString();
+      } else {
+        out[k] = val;
+      }
     }
   }
   return out;

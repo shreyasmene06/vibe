@@ -1,6 +1,6 @@
 import 'reflect-metadata';
 import { injectable, inject } from 'inversify';
-import { ClientSession, Collection } from 'mongodb';
+import { ClientSession, Collection, ObjectId } from 'mongodb';
 import { MongoDatabase } from '#shared/database/providers/mongo/MongoDatabase.js';
 import { InternalServerError } from 'routing-controllers';
 import { GLOBAL_TYPES } from '#root/types.js';
@@ -84,7 +84,10 @@ export class PeerReviewAssignmentRepository {
 
   async findById(id: string): Promise<IPeerReviewAssignment | null> {
     await this.init();
-    const doc = await this.collection.findOne({ _id: id as any });
+    const filter = ObjectId.isValid(id)
+      ? { _id: new ObjectId(id) as any }
+      : { _id: id as any };
+    const doc = await this.collection.findOne(filter);
     if (!doc) return null;
     return doc as IPeerReviewAssignment;
   }
@@ -93,9 +96,13 @@ export class PeerReviewAssignmentRepository {
     submissionId: string,
   ): Promise<IPeerReviewAssignment[]> {
     await this.init();
-    const docs = await this.collection
-      .find({ submissionId: submissionId as any })
-      .toArray();
+    const filter: any = {};
+    if (ObjectId.isValid(submissionId)) {
+      filter.submissionId = new ObjectId(submissionId);
+    } else {
+      filter.submissionId = submissionId;
+    }
+    const docs = await this.collection.find(filter).toArray();
     return docs as IPeerReviewAssignment[];
   }
 
@@ -103,12 +110,15 @@ export class PeerReviewAssignmentRepository {
     reviewerId: string,
   ): Promise<IPeerReviewAssignment[]> {
     await this.init();
-    const docs = await this.collection
-      .find({
-        reviewerId: reviewerId as any,
-        status: { $in: ['PENDING', 'IN_PROGRESS', 'OVERDUE'] },
-      })
-      .toArray();
+    const filter: any = {
+      status: { $in: ['PENDING', 'IN_PROGRESS', 'OVERDUE'] },
+    };
+    if (ObjectId.isValid(reviewerId)) {
+      filter.reviewerId = new ObjectId(reviewerId);
+    } else {
+      filter.reviewerId = reviewerId;
+    }
+    const docs = await this.collection.find(filter).toArray();
     return docs as IPeerReviewAssignment[];
   }
 
@@ -116,9 +126,13 @@ export class PeerReviewAssignmentRepository {
     reviewerId: string,
   ): Promise<IPeerReviewAssignment[]> {
     await this.init();
-    const docs = await this.collection
-      .find({ reviewerId: reviewerId as any })
-      .toArray();
+    const filter: any = {};
+    if (ObjectId.isValid(reviewerId)) {
+      filter.reviewerId = new ObjectId(reviewerId);
+    } else {
+      filter.reviewerId = reviewerId;
+    }
+    const docs = await this.collection.find(filter).toArray();
     return docs as IPeerReviewAssignment[];
   }
 
@@ -131,9 +145,14 @@ export class PeerReviewAssignmentRepository {
     assessmentId: string,
   ): Promise<IPeerReviewAssignment[]> {
     await this.init();
-    const docs = await this.collection
-      .find({ assessmentId: assessmentId as any })
-      .toArray();
+    // assessmentId is stored as an ObjectId; coerce the incoming string.
+    const filter: any = {};
+    if (ObjectId.isValid(assessmentId)) {
+      filter.assessmentId = new ObjectId(assessmentId);
+    } else {
+      filter.assessmentId = assessmentId;
+    }
+    const docs = await this.collection.find(filter).toArray();
     return docs as IPeerReviewAssignment[];
   }
 
@@ -143,8 +162,11 @@ export class PeerReviewAssignmentRepository {
     session?: ClientSession,
   ): Promise<void> {
     await this.init();
+    const filter = ObjectId.isValid(id)
+      ? { _id: new ObjectId(id) as any }
+      : { _id: id as any };
     await this.collection.updateOne(
-      { _id: id as any },
+      filter,
       { $set: { status, updatedAt: new Date() } },
       { session },
     );
@@ -156,8 +178,11 @@ export class PeerReviewAssignmentRepository {
     session?: ClientSession,
   ): Promise<void> {
     await this.init();
+    const filter = ObjectId.isValid(id)
+      ? { _id: new ObjectId(id) as any }
+      : { _id: id as any };
     await this.collection.updateOne(
-      { _id: id as any },
+      filter,
       {
         $set: {
           submittedReviewId: reviewId as any,
@@ -179,8 +204,11 @@ export class PeerReviewAssignmentRepository {
     session?: ClientSession,
   ): Promise<void> {
     await this.init();
+    const filter = ObjectId.isValid(oldId)
+      ? { _id: new ObjectId(oldId) as any }
+      : { _id: oldId as any };
     await this.collection.updateOne(
-      { _id: oldId as any },
+      filter,
       {
         $set: {
           status: 'REASSIGNED' as const,
@@ -197,8 +225,11 @@ export class PeerReviewAssignmentRepository {
     session?: ClientSession,
   ): Promise<void> {
     await this.init();
+    const filter = ObjectId.isValid(id)
+      ? { _id: new ObjectId(id) as any }
+      : { _id: id as any };
     await this.collection.updateOne(
-      { _id: id as any },
+      filter,
       {
         $inc: { reassignmentCount: 1 },
         $set: { updatedAt: new Date() },
@@ -216,13 +247,16 @@ export class PeerReviewAssignmentRepository {
     maxRounds: number,
   ): Promise<IPeerReviewAssignment[]> {
     await this.init();
-    const docs = await this.collection
-      .find({
-        assessmentId: assessmentId as any,
-        status: { $in: ['PENDING', 'OVERDUE', 'LINK_REVOKED'] },
-        reassignmentCount: { $lt: maxRounds },
-      })
-      .toArray();
+    const filter: any = {
+      status: { $in: ['PENDING', 'OVERDUE', 'LINK_REVOKED'] },
+      reassignmentCount: { $lt: maxRounds },
+    };
+    if (ObjectId.isValid(assessmentId)) {
+      filter.assessmentId = new ObjectId(assessmentId);
+    } else {
+      filter.assessmentId = assessmentId;
+    }
+    const docs = await this.collection.find(filter).toArray();
     return docs as IPeerReviewAssignment[];
   }
 }

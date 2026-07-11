@@ -1,0 +1,54 @@
+- generic [ref=f1e2]:
+  - generic [ref=f1e10]:
+    - generic [ref=f1e13]:
+      - generic [ref=f1e15]:
+        - img "Vibe Logo" [ref=f1e17]
+        - generic [ref=f1e18]:
+          - generic [ref=f1e20]:
+            - generic [ref=f1e21]: ViBe
+            - generic [ref=f1e22]: ViBe
+          - paragraph [ref=f1e23]: Learning Platform
+      - list [ref=f1e28]:
+        - listitem [ref=f1e29]:
+          - button "Untitled Module 0/7 completed 1 sections" [expanded] [active] [ref=f1e30] [cursor=pointer]:
+            - generic [ref=f1e33]:
+              - generic [ref=f1e34]:
+                - generic [ref=f1e35]: Untitled Module
+                - generic [ref=f1e36]: 0/7 completed
+              - generic [ref=f1e37]: 1 sections
+          - list [ref=f1e94]:
+            - listitem [ref=f1e95]:
+              - button "New Section" [ref=f1e96] [cursor=pointer]
+        - listitem [ref=f1e38]:
+          - button "Test Module From API 0/2 completed 1 sections" [ref=f1e39] [cursor=pointer]:
+            - generic [ref=f1e42]:
+              - generic [ref=f1e43]:
+                - generic [ref=f1e44]: Test Module From API
+                - generic [ref=f1e45]: 0/2 completed
+              - generic [ref=f1e46]: 1 sections
+      - list [ref=f1e49]:
+        - listitem [ref=f1e50]:
+          - link "Dashboard" [ref=f1e51] [cursor=pointer]:
+            - /url: /student
+        - listitem [ref=f1e57]:
+          - link "Courses" [ref=f1e58] [cursor=pointer]:
+            - /url: /student/courses
+        - listitem [ref=f1e64]:
+          - link "S Student User View Profile" [ref=f1e65] [cursor=pointer]:
+            - /url: /student/profile
+            - generic [ref=f1e66]: S
+            - generic [ref=f1e68]:
+              - generic "Student User" [ref=f1e69]
+              - generic [ref=f1e70]: View Profile
+    - separator [ref=f1e71]
+    - main [ref=f1e73]:
+      - generic [ref=f1e74]:
+        - button "Toggle Sidebar" [ref=f1e75] [cursor=pointer]
+        - button [ref=f1e77] [cursor=pointer]
+        - generic "Select content to begin learning" [ref=f1e79]
+        - button "Toggle theme" [ref=f1e81] [cursor=pointer]
+      - generic [ref=f1e85]:
+        - heading "Ready to Learn?" [level=3] [ref=f1e91]
+        - paragraph [ref=f1e92]: Select an item from the course navigation to begin your learning journey and unlock new knowledge.
+        - button "Browse Content" [ref=f1e93] [cursor=pointer]
+  - region "Notifications alt+T"

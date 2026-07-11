@@ -15,6 +15,7 @@ const TYPES = {
   AssignmentRunner: Symbol.for('AssignmentRunner'),
   ReassignmentRunner: Symbol.for('ReassignmentRunner'),
   FinalizationRunner: Symbol.for('FinalizationRunner'),
+  DueDateReminderRunner: Symbol.for('DueDateReminderRunner'),
   // Repositories
   PeerReviewAssessmentRepo: Symbol.for('PeerReviewAssessmentRepo'),
   PeerReviewSubmissionRepo: Symbol.for('PeerReviewSubmissionRepo'),

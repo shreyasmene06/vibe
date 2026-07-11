@@ -1,0 +1,80 @@
+- generic [ref=f8e2]:
+  - generic [ref=f8e4]:
+    - generic [ref=f8e7]:
+      - generic [ref=f8e9]:
+        - generic [ref=f8e13]:
+          - heading "Vibe (Teacher)" [level=1] [ref=f8e14]
+          - paragraph [ref=f8e15]: Course Editor
+        - button "Toggle Reorder" [ref=f8e16] [cursor=pointer]
+      - list [ref=f8e22]:
+        - list [ref=f8e23]:
+          - listitem [ref=f8e118]:
+            - generic [ref=f8e119]:
+              - button "Hide Module" [ref=f8e120] [cursor=pointer]
+              - button "Untitled Module" [ref=f8e122] [cursor=pointer]
+          - listitem [ref=f8e126]:
+            - generic [ref=f8e127]:
+              - button "Hide Module" [ref=f8e128] [cursor=pointer]
+              - button "Test Module From API" [ref=f8e130] [cursor=pointer]
+          - button "Add Module" [ref=f8e25] [cursor=pointer]
+      - list [ref=f8e27]:
+        - listitem [ref=f8e28]:
+          - link "Dashboard" [ref=f8e29] [cursor=pointer]:
+            - /url: /teacher
+        - listitem [ref=f8e35]:
+          - link "Courses" [ref=f8e36] [cursor=pointer]:
+            - /url: /teacher
+        - listitem [ref=f8e42]:
+          - link "T Teacher User View Profile" [ref=f8e43] [cursor=pointer]:
+            - /url: /teacher/profile
+            - generic [ref=f8e44]: T
+            - generic [ref=f8e46]:
+              - generic "Teacher User" [ref=f8e47]
+              - generic [ref=f8e48]: View Profile
+    - separator [ref=f8e49]
+    - main [ref=f8e51]:
+      - generic [ref=f8e53]:
+        - generic [ref=f8e54]:
+          - button "Toggle Sidebar" [ref=f8e55] [cursor=pointer]
+          - navigation "breadcrumb" [ref=f8e57]:
+            - list [ref=f8e58]:
+              - listitem [ref=f8e59]:
+                - link "Dashboard" [ref=f8e60] [cursor=pointer]:
+                  - /url: /teacher
+              - listitem [ref=f8e61]
+              - listitem [ref=f8e64]:
+                - link "Teacher" [ref=f8e65] [cursor=pointer]:
+                  - /url: /teacher
+              - listitem [ref=f8e66]
+              - listitem [ref=f8e69]:
+                - link "View" [ref=f8e70] [cursor=pointer]:
+                  - /url: /teacher/courses/view
+              - listitem [ref=f8e71]
+              - listitem
+        - generic [ref=f8e74]:
+          - button "Invites" [ref=f8e76] [cursor=pointer]
+          - button "Logout" [ref=f8e78] [cursor=pointer]
+          - button "Toggle theme" [ref=f8e80] [cursor=pointer]
+          - link "T" [ref=f8e82] [cursor=pointer]:
+            - /url: /teacher/profile
+      - generic [ref=f8e86]:
+        - button "Back" [ref=f8e87] [cursor=pointer]
+        - generic [ref=f8e88]:
+          - generic [ref=f8e94]:
+            - generic [ref=f8e95]:
+              - paragraph [ref=f8e96]: Course
+              - heading "wdwdwdwd" [level=2] [ref=f8e134]
+              - paragraph [ref=f8e135]: dwdwdwd
+            - generic [ref=f8e100]:
+              - paragraph [ref=f8e101]: Version
+              - heading "wdwdwdwd" [level=3] [ref=f8e136]
+              - paragraph [ref=f8e137]: dwdwdwd
+          - generic [ref=f8e105]:
+            - paragraph [ref=f8e138]: Editor is ready.
+            - paragraph [ref=f8e139]: Select a module, section, or item from the left panel to view the full edit card.
+            - paragraph [ref=f8e107]: Generate engaging content with AI-powered tools
+          - generic [ref=f8e108]:
+            - generic [ref=f8e109]: AI-Powered Content
+            - generic [ref=f8e112]: Smart Course Builder
+            - generic [ref=f8e115]: Interactive Learning
+  - region "Notifications alt+T"

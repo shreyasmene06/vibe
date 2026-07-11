@@ -1,0 +1,33 @@
+- generic [ref=f5e2]:
+  - generic [ref=f5e256]:
+    - generic [ref=f5e257]:
+      - generic [ref=f5e258]:
+        - button "← Back" [ref=f5e259] [cursor=pointer]
+        - img "Vibe Logo" [ref=f5e261]
+        - generic [ref=f5e263]:
+          - generic [ref=f5e264]: ViBe
+          - generic [ref=f5e265]: ViBe
+      - generic [ref=f5e266]:
+        - generic [ref=f5e267]:
+          - heading "Welcome to the Future of Learning" [level=1] [ref=f5e268]:
+            - text: Welcome to the Future of
+            - generic [ref=f5e269]:
+              - generic [ref=f5e270]: Learning
+              - text: Learning
+          - paragraph [ref=f5e271]: Connect, collaborate, and grow with our innovative educational platform designed for the next generation
+        - generic [ref=f5e272]:
+          - paragraph [ref=f5e274]: Funded by
+          - generic [ref=f5e275]:
+            - img "IIT Ropar" [ref=f5e278]
+            - img "UGC Logo" [ref=f5e281]
+            - img "Annam Logo" [ref=f5e284]
+            - img "VLED Logo" [ref=f5e287]
+    - generic [ref=f5e289]:
+      - generic [ref=f5e290]:
+        - heading "Welcome to Vibe" [level=2] [ref=f5e291]
+        - paragraph [ref=f5e292]: Choose how you want to continue
+      - generic [ref=f5e293]:
+        - button [ref=f5e294] [cursor=pointer]
+        - generic [ref=f5e296]: Or
+        - button [ref=f5e301] [cursor=pointer]
+  - region "Notifications alt+T"

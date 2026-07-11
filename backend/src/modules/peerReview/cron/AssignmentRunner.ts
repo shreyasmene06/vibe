@@ -3,8 +3,6 @@ import { GLOBAL_TYPES } from '#root/types.js';
 import { PEERREVIEW_TYPES } from '../types.js';
 import { PeerReviewAssessmentRepository } from '../repositories/providers/mongodb/PeerReviewAssessmentRepository.js';
 import { PeerReviewAssignmentService } from '../services/PeerReviewAssignmentService.js';
-import { PeerReviewNotificationService } from '../services/PeerReviewNotificationService.js';
-import { PeerReviewAssignmentRepository } from '../repositories/providers/mongodb/PeerReviewAssignmentRepository.js';
 
 /**
  * AssignmentRunner — picks up assessments whose submissionDeadline has
@@ -25,10 +23,6 @@ export class AssignmentRunner {
     private readonly assessmentRepo: PeerReviewAssessmentRepository,
     @inject(PEERREVIEW_TYPES.PeerReviewAssignmentService)
     private readonly service: PeerReviewAssignmentService,
-    @inject(PEERREVIEW_TYPES.PeerReviewAssignmentRepo)
-    private readonly assignmentRepo: PeerReviewAssignmentRepository,
-    @inject(PEERREVIEW_TYPES.PeerReviewNotificationService)
-    private readonly notifier: PeerReviewNotificationService,
   ) {}
 
   /**
@@ -47,35 +41,15 @@ export class AssignmentRunner {
       const id = (a._id as any).toString();
       try {
         const result = await this.service.runForAssessment(id);
-        let notifiedReviewers = 0;
-        if (result.status === 'ran') {
-          // Find every assignment row for this assessment and notify
-          // each unique reviewer once with their total count.
-          const assignments = await this.assignmentRepo.findByAssessment(
-            id,
-          );
-          const byReviewer = new Map<string, number>();
-          for (const asn of assignments as any[]) {
-            const reviewerId = (asn.reviewerId as any).toString();
-            byReviewer.set(reviewerId, (byReviewer.get(reviewerId) ?? 0) + 1);
-          }
-          for (const [reviewerId, count] of byReviewer.entries()) {
-            await this.notifier.notifyAssignmentsOut({
-              userId: reviewerId,
-              courseId: (a as any).courseId?.toString(),
-              courseVersionId: (a as any).courseVersionId?.toString(),
-              assessmentId: id,
-              assessmentTitle: (a as any).title ?? 'Peer-review assessment',
-              dueAt: (a as any).reviewDeadline,
-              count,
-            });
-            notifiedReviewers++;
-          }
-        }
+        // runForAssessment already calls notifyReviewersOfAssignments
+        // when status === 'ran', so we don't need a second pass here.
+        // 'already_ran' means the first caller (manual close OR a prior
+        // cron tick) handled notifications; 'insufficient_submissions'
+        // means there's nothing to notify about. For consistency we
+        // report notifiedReviewers only on 'ran'.
         ran.push({
           assessmentId: id,
           ...result,
-          notifiedReviewers,
         });
       } catch (e: any) {
         errors.push({ assessmentId: id, error: String(e?.message ?? e) });
@@ -90,18 +64,19 @@ export class AssignmentRunner {
    */
   scheduleCron(): void {
     // Defer the actual cron import to avoid loading it in tests
-    const cron = require('node-cron');
-    cron.schedule('* * * * *', async () => {
-      try {
-        const result = await this.runNow();
-        if (result.ran.length > 0) {
-          console.log(
-            `[AssignmentRunner] ran ${result.ran.length} assessments, errors=${result.errors.length}`,
-          );
+    import('node-cron').then(({default: cron}) => {
+      cron.schedule('* * * * *', async () => {
+        try {
+          const result = await this.runNow();
+          if (result.ran.length > 0) {
+            console.log(
+              `[AssignmentRunner] ran ${result.ran.length} assessments, errors=${result.errors.length}`,
+            );
+          }
+        } catch (e) {
+          console.error('[AssignmentRunner] cron error', e);
         }
-      } catch (e) {
-        console.error('[AssignmentRunner] cron error', e);
-      }
+      });
     });
   }
 }

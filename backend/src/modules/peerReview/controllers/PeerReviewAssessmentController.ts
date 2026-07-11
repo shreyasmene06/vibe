@@ -1,5 +1,5 @@
 import 'reflect-metadata';
-import { JsonController, Post, Patch, Get, Param, Body, HttpCode, Authorized, CurrentUser, Req } from 'routing-controllers';
+import { JsonController, Post, Patch, Get, Delete, Param, Body, HttpCode, Authorized, CurrentUser, Req } from 'routing-controllers';
 import { injectable, inject } from 'inversify';
 import { ObjectId } from 'mongodb';
 import { ForbiddenError, InternalServerError, NotFoundError } from 'routing-controllers';
@@ -159,6 +159,34 @@ export class PeerReviewAssessmentController {
     setAuditTrail(req, {
       category: AuditCategory.PEER_REVIEW,
       action: AuditAction.PEER_REVIEW_ASSESSMENT_CLOSED,
+      actor: {
+        id: new ObjectId(user._id!.toString()),
+        name: `${user.firstName} ${user.lastName}`,
+        email: user.email,
+        role: user.roles,
+      },
+      context: { peerReviewAssessmentId: id as any },
+    });
+    return { ok: true };
+  }
+
+  /**
+   * Soft-delete an assessment (removes it from the section sidebar +
+   * flags isDeleted). Only allowed before the first submission arrives
+   * (service enforces).
+   */
+  @Delete('/:id')
+  @HttpCode(200)
+  @Authorized(['INSTRUCTOR', 'MANAGER'])
+  async delete(
+    @Req() req: any,
+    @CurrentUser({ required: true }) user: IUser,
+    @Param('id') id: string,
+  ): Promise<{ ok: true }> {
+    await this.service.delete(user, id);
+    setAuditTrail(req, {
+      category: AuditCategory.PEER_REVIEW,
+      action: AuditAction.PEER_REVIEW_ASSESSMENT_DELETED,
       actor: {
         id: new ObjectId(user._id!.toString()),
         name: `${user.firstName} ${user.lastName}`,

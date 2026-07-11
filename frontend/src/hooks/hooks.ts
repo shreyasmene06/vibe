@@ -1660,6 +1660,93 @@ export function useReviewsReceived(assessmentId: string | undefined): {
   };
 }
 
+// GET /peer-review-assessments/{id}/submissions
+export function useTeacherSubmissionsForAssessment(assessmentId: string | undefined): {
+  data: any,
+  isLoading: boolean,
+  error: string | null,
+  refetch: () => void,
+} {
+  const result = (api as any).useQuery(
+    'get',
+    '/peer-review-assessments/{id}/submissions',
+    assessmentId ? { params: { path: { id: assessmentId } } } : ({} as any),
+    { enabled: !!assessmentId },
+  );
+  return {
+    data: result.data,
+    isLoading: result.isLoading,
+    error: result.error ? (result.error.message || 'Load failed') : null,
+    refetch: result.refetch,
+  };
+}
+
+// GET /peer-review-assessments/{id}/reviews
+export function useTeacherReviewsForAssessment(assessmentId: string | undefined): {
+  data: any,
+  isLoading: boolean,
+  error: string | null,
+  refetch: () => void,
+} {
+  const result = (api as any).useQuery(
+    'get',
+    '/peer-review-assessments/{id}/reviews',
+    assessmentId ? { params: { path: { id: assessmentId } } } : ({} as any),
+    { enabled: !!assessmentId },
+  );
+  return {
+    data: result.data,
+    isLoading: result.isLoading,
+    error: result.error ? (result.error.message || 'Load failed') : null,
+    refetch: result.refetch,
+  };
+}
+
+// PATCH /peer-reviews/{id}/teacher-override
+export function useTeacherOverrideReview(): {
+  mutate: (variables: {
+    params: { path: { id: string } },
+    body: { scores?: any[], overallComment?: string, reason: string },
+  }) => void,
+  mutateAsync: (variables: {
+    params: { path: { id: string } },
+    body: { scores?: any[], overallComment?: string, reason: string },
+  }) => Promise<any>,
+  isPending: boolean,
+  error: string | null,
+} {
+  const result = (api as any).useMutation(
+    'patch',
+    '/peer-reviews/{id}/teacher-override',
+  );
+  return {
+    mutate: result.mutate,
+    mutateAsync: result.mutateAsync,
+    isPending: result.isPending ?? false,
+    error: result.error ? (result.error.message || 'Override failed') : null,
+  };
+}
+
+// GET /students/me/peer-reviews-given
+export function useMyReviewsGiven(): {
+  data: any[],
+  isLoading: boolean,
+  error: string | null,
+  refetch: () => void,
+} {
+  const result = (api as any).useQuery(
+    'get',
+    '/students/me/peer-reviews-given',
+    {} as any,
+  );
+  return {
+    data: (result.data ?? []) as any[],
+    isLoading: result.isLoading,
+    error: result.error ? (result.error.message || 'Load failed') : null,
+    refetch: result.refetch,
+  };
+}
+
 // GET /peer-review-links/check?url=...  (Phase 7 audit-improvement)
 //
 // Live URL accessibility check. Used by the submission form to show

@@ -138,6 +138,7 @@ if [ -z "$SKIP_BACKEND" ]; then
     # runs `firebase emulators:export` before kill, which is reliable.
     (firebase emulators:start --only auth --project demo-test \
         --import "$VIBE_AUTH_EXPORT" \
+        --export-on-exit "$VIBE_AUTH_EXPORT" \
         > /tmp/vibe-firebase-emu.log 2>&1 &)
     for i in {1..30}; do
       sleep 1

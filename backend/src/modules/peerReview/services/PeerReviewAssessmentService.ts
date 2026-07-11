@@ -348,6 +348,52 @@ export class PeerReviewAssessmentService extends BaseService {
   }
 
   /**
+   * Soft-delete an assessment (sets isDeleted=true, deletedAt=now).
+   * The underlying Item is also hidden from the section's itemsGroup
+   * so the sidebar doesn't keep showing a stale item. Allowed only
+   * before the first submission arrives — once data exists, the
+   * assessment is part of the student's audit trail and deletion would
+   * break the double-blind contract.
+   */
+  async delete(teacher: IUser, assessmentId: string): Promise<void> {
+    const existing = await this.assessmentRepo.findById(assessmentId);
+    if (!existing || existing.isDeleted) {
+      throw new NotFoundError('Assessment not found.');
+    }
+    const submissionCount = await this._countSubmissions(existing._id as any);
+    if (submissionCount > 0) {
+      throw new ForbiddenError(
+        'Cannot delete an assessment after a student has submitted. ' +
+          'Submissions are part of the student audit trail.',
+      );
+    }
+    // Unlink from the section's itemsGroup so the sidebar item also
+    // disappears. The Item doc itself stays in `items` collection as
+    // a tombstone (cleaner than cascading deletes for now).
+    await this._withTransaction(async session => {
+      await this.assessmentRepo.softDelete(assessmentId, session);
+      const itemsGroup =
+        await this.itemRepo.findItemsGroupBySectionId(
+          String(existing.sectionId),
+          session,
+        );
+      if (itemsGroup && Array.isArray(itemsGroup.items)) {
+        const filtered = itemsGroup.items.filter(
+          (it: any) => String(it._id) !== String(existing.itemId),
+        );
+        if (filtered.length !== itemsGroup.items.length) {
+          itemsGroup.items = filtered;
+          await this.itemRepo.updateItemsGroup(
+            String(itemsGroup._id),
+            itemsGroup,
+            session,
+          );
+        }
+      }
+    });
+  }
+
+  /**
    * Fetch an assessment by id. Authorization is performed at the
    * controller layer; the service is a thin pass-through.
    */
@@ -498,6 +544,9 @@ export class PeerReviewAssessmentService extends BaseService {
     void repo;
     void PEERREVIEW_TYPES;
     void PeerReviewSubmissionRepository;
-    return coll.countDocuments({ assessmentId: assessmentId as any });
+    const queryId = typeof assessmentId === 'string' && ObjectId.isValid(assessmentId)
+      ? new ObjectId(assessmentId)
+      : assessmentId;
+    return coll.countDocuments({ assessmentId: queryId as any });
   }
 }

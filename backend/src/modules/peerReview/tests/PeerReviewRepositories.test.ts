@@ -57,8 +57,9 @@ beforeAll(async () => {
 
   // Register a fresh MongoDatabase bound to this URI so the repos connect
   // to the in-memory instance, not the dev one.
-  c.bind(MongoDatabase).toSelf().inSingletonScope();
-  await c.get<MongoDatabase>(MongoDatabase).connect();
+  c.bind(GLOBAL_TYPES.Database).to(MongoDatabase).inSingletonScope();
+  c.bind(MongoDatabase).toDynamicValue(() => c.get(GLOBAL_TYPES.Database));
+  await c.get<MongoDatabase>(GLOBAL_TYPES.Database).connect();
 
   useContainer(new InversifyAdapter(c));
 
@@ -215,10 +216,10 @@ describe('PeerReviewAssignmentRepository', () => {
 
   it('findOverdueForReassessment respects the max-rounds cap', async () => {
     const capped = await repos.assignment.create(
-      makeAssignment({ reassignmentCount: 2 }),
+      makeAssignment({ reassignmentCount: 2, assessmentId: 'any-assessment' }),
     );
     const fresh = await repos.assignment.create(
-      makeAssignment({ reassignmentCount: 0 }),
+      makeAssignment({ reassignmentCount: 0, assessmentId: 'any-assessment' }),
     );
     const got = await repos.assignment.findOverdueForReassessment(
       'any-assessment',

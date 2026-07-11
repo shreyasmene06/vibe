@@ -126,6 +126,27 @@ export class PeerReviewAssessmentRepository {
     return docs as IPeerReviewAssessment[];
   }
 
+  /**
+   * Cron query: assessments whose reviewDeadline has passed AND the
+   * assignment algorithm HAS run (so there are reviews to score).
+   * Idempotent: if closedAt is already set we still return — the runner
+   * is responsible for skipping already-finalized rows (checked via
+   * submission.finalScoreLockedAt).
+   */
+  async findDueForFinalization(
+    now: Date,
+  ): Promise<IPeerReviewAssessment[]> {
+    await this.init();
+    const docs = await this.collection
+      .find({
+        reviewDeadline: { $lte: now },
+        assignmentRunAt: { $exists: true },
+        isDeleted: { $ne: true },
+      })
+      .toArray();
+    return docs as IPeerReviewAssessment[];
+  }
+
   async create(
     doc: IPeerReviewAssessment,
     session?: ClientSession,
@@ -151,8 +172,11 @@ export class PeerReviewAssessmentRepository {
   ): Promise<void> {
     await this.init();
     patch.updatedAt = new Date();
+    const filter = ObjectId.isValid(id)
+      ? { _id: new ObjectId(id) as any }
+      : { _id: id as any };
     await this.collection.updateOne(
-      { _id: id as any },
+      filter,
       { $set: patch },
       { session },
     );
@@ -163,8 +187,11 @@ export class PeerReviewAssessmentRepository {
     session?: ClientSession,
   ): Promise<void> {
     await this.init();
+    const filter = ObjectId.isValid(id)
+      ? { _id: new ObjectId(id) as any }
+      : { _id: id as any };
     await this.collection.updateOne(
-      { _id: id as any },
+      filter,
       { $set: { isDeleted: true, deletedAt: new Date(), updatedAt: new Date() } },
       { session },
     );

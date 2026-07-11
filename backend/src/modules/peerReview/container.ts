@@ -17,6 +17,7 @@ import { PeerReviewTeacherController } from './controllers/PeerReviewTeacherCont
 import { AssignmentRunner } from './cron/AssignmentRunner.js';
 import { ReassignmentRunner } from './cron/ReassignmentRunner.js';
 import { FinalizationRunner } from './cron/FinalizationRunner.js';
+import { DueDateReminderRunner } from './cron/DueDateReminderRunner.js';
 
 /**
  * DI bindings for the peerReview module.
@@ -95,5 +96,9 @@ export const peerReviewContainerModule = new ContainerModule(options => {
   options
     .bind(PEERREVIEW_TYPES.FinalizationRunner)
     .to(FinalizationRunner)
+    .inSingletonScope();
+  options
+    .bind(PEERREVIEW_TYPES.DueDateReminderRunner)
+    .to(DueDateReminderRunner)
     .inSingletonScope();
 });

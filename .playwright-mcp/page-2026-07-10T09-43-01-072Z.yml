@@ -1,0 +1,50 @@
+- generic [ref=f5e2]:
+  - generic [ref=f5e193]:
+    - generic [ref=f5e194]:
+      - generic [ref=f5e195]:
+        - button "← Back" [ref=f5e196] [cursor=pointer]
+        - img "Vibe Logo" [ref=f5e198]
+        - generic [ref=f5e200]:
+          - generic [ref=f5e201]: ViBe
+          - generic [ref=f5e202]: ViBe
+      - generic [ref=f5e203]:
+        - generic [ref=f5e204]:
+          - heading "Welcome to the Future of Learning" [level=1] [ref=f5e205]:
+            - text: Welcome to the Future of
+            - generic [ref=f5e206]:
+              - generic [ref=f5e207]: Learning
+              - text: Learning
+          - paragraph [ref=f5e208]: Connect, collaborate, and grow with our innovative educational platform designed for the next generation
+        - generic [ref=f5e209]:
+          - paragraph [ref=f5e211]: Funded by
+          - generic [ref=f5e212]:
+            - img "IIT Ropar" [ref=f5e215]
+            - img "UGC Logo" [ref=f5e218]
+            - img "Annam Logo" [ref=f5e221]
+            - img "VLED Logo" [ref=f5e224]
+    - generic [ref=f5e226]:
+      - generic [ref=f5e227]:
+        - generic [ref=f5e228]: Want to teach on ViBe?
+        - button "Switch role" [ref=f5e229] [cursor=pointer]
+      - generic [ref=f5e231]:
+        - generic [ref=f5e232]:
+          - generic [ref=f5e233]: Welcome Back
+          - generic [ref=f5e234]: Sign in to your account to continue
+        - generic [ref=f5e235]:
+          - generic [ref=f5e236]:
+            - generic [ref=f5e237]: Email Address
+            - textbox "Email Address" [ref=f5e238]:
+              - /placeholder: Enter your email
+          - generic [ref=f5e239]:
+            - generic [ref=f5e240]: Password
+            - generic [ref=f5e241]:
+              - textbox "Password" [ref=f5e242]:
+                - /placeholder: Enter your password
+              - button [ref=f5e243] [cursor=pointer]
+          - button "Sign in as learner" [ref=f5e244] [cursor=pointer]
+          - generic [ref=f5e245]: or continue with
+          - button "Continue with Google" [ref=f5e249] [cursor=pointer]
+        - generic [ref=f5e251]:
+          - generic [ref=f5e252]: Don't have an account?
+          - button "Sign up" [ref=f5e253] [cursor=pointer]
+  - region "Notifications alt+T"
